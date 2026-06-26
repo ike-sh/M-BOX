@@ -3,6 +3,7 @@ import { ListFilter, Search, Database, RefreshCw, FileText, Plus, Trash2, Pencil
 import { GlassCard, CardHead, Pill, Switch, Modal, FormField, Select, ConfirmDialog, InlineError } from "../components/ui";
 import { api } from "../lib/api";
 import { Config } from "./Config";
+import { useI18n } from "../lib/i18n";
 import type { RuleItem, RuleProvider } from "../types";
 
 function ruleRaw(r: RuleItem): string {
@@ -22,31 +23,32 @@ const BASE_TARGETS = ["PROXY", "DIRECT", "REJECT"];
 // 所以这是「配置文件的可视化开关」，不是另写一套，和「分流规则」Tab 是同一份 config。
 type RuleCat = {
   label: string;
+  en: string;
   type: "GEOSITE" | "GEOIP";
   payload: string; // 与 config 规则的 payload 一致（如 youtube / category-ads-all / cn）
   defaultTarget: string; // 该分类启用时默认走的出站组（按内置 default.yaml 组名；不存在会回退）
 };
 
 const RULE_CATS: RuleCat[] = [
-  { label: "🛑 广告拦截", type: "GEOSITE", payload: "category-ads-all", defaultTarget: "REJECT" },
-  { label: "🏠 私有网络", type: "GEOSITE", payload: "private", defaultTarget: "🎯 全球直连" },
-  { label: "💬 即时通讯", type: "GEOSITE", payload: "category-communication", defaultTarget: "💬 即时通讯" },
-  { label: "🌐 社交媒体", type: "GEOSITE", payload: "category-social-media-!cn", defaultTarget: "🌐 社交媒体" },
-  { label: "🚀 GitHub", type: "GEOSITE", payload: "github", defaultTarget: "🚀 GitHub" },
-  { label: "🤖 ChatGPT", type: "GEOSITE", payload: "openai", defaultTarget: "🤖 ChatGPT" },
-  { label: "🤖 AI 服务", type: "GEOSITE", payload: "category-ai-!cn", defaultTarget: "🤖 AI服务" },
-  { label: "🎶 TikTok", type: "GEOSITE", payload: "tiktok", defaultTarget: "🎶 TikTok" },
-  { label: "📹 YouTube", type: "GEOSITE", payload: "youtube", defaultTarget: "📹 YouTube" },
-  { label: "🎥 Netflix", type: "GEOSITE", payload: "netflix", defaultTarget: "🎥 Netflix" },
-  { label: "🎥 Disney+", type: "GEOSITE", payload: "disney", defaultTarget: "🎥 DisneyPlus" },
-  { label: "🇬 谷歌服务", type: "GEOSITE", payload: "google", defaultTarget: "🇬 谷歌服务" },
-  { label: "🍎 苹果服务", type: "GEOSITE", payload: "apple", defaultTarget: "🍎 苹果服务" },
-  { label: "Ⓜ️ 微软服务", type: "GEOSITE", payload: "microsoft", defaultTarget: "Ⓜ️ 微软服务" },
-  { label: "🎮 Steam", type: "GEOSITE", payload: "steam", defaultTarget: "🎮 Steam" },
-  { label: "🌍 国外网站", type: "GEOSITE", payload: "geolocation-!cn", defaultTarget: "🚀 手动选择" },
-  { label: "🇨🇳 国内域名", type: "GEOSITE", payload: "cn", defaultTarget: "🎯 全球直连" },
-  { label: "🇨🇳 国内 IP", type: "GEOIP", payload: "cn", defaultTarget: "🎯 全球直连" },
-  { label: "✈️ Telegram IP", type: "GEOIP", payload: "telegram", defaultTarget: "💬 即时通讯" },
+  { label: "🛑 广告拦截", en: "🛑 Ad Block", type: "GEOSITE", payload: "category-ads-all", defaultTarget: "REJECT" },
+  { label: "🏠 私有网络", en: "🏠 Private", type: "GEOSITE", payload: "private", defaultTarget: "🎯 全球直连" },
+  { label: "💬 即时通讯", en: "💬 Messaging", type: "GEOSITE", payload: "category-communication", defaultTarget: "💬 即时通讯" },
+  { label: "🌐 社交媒体", en: "🌐 Social", type: "GEOSITE", payload: "category-social-media-!cn", defaultTarget: "🌐 社交媒体" },
+  { label: "🚀 GitHub", en: "🚀 GitHub", type: "GEOSITE", payload: "github", defaultTarget: "🚀 GitHub" },
+  { label: "🤖 ChatGPT", en: "🤖 ChatGPT", type: "GEOSITE", payload: "openai", defaultTarget: "🤖 ChatGPT" },
+  { label: "🤖 AI 服务", en: "🤖 AI Services", type: "GEOSITE", payload: "category-ai-!cn", defaultTarget: "🤖 AI服务" },
+  { label: "🎶 TikTok", en: "🎶 TikTok", type: "GEOSITE", payload: "tiktok", defaultTarget: "🎶 TikTok" },
+  { label: "📹 YouTube", en: "📹 YouTube", type: "GEOSITE", payload: "youtube", defaultTarget: "📹 YouTube" },
+  { label: "🎥 Netflix", en: "🎥 Netflix", type: "GEOSITE", payload: "netflix", defaultTarget: "🎥 Netflix" },
+  { label: "🎥 Disney+", en: "🎥 Disney+", type: "GEOSITE", payload: "disney", defaultTarget: "🎥 DisneyPlus" },
+  { label: "🇬 谷歌服务", en: "🇬 Google", type: "GEOSITE", payload: "google", defaultTarget: "🇬 谷歌服务" },
+  { label: "🍎 苹果服务", en: "🍎 Apple", type: "GEOSITE", payload: "apple", defaultTarget: "🍎 苹果服务" },
+  { label: "Ⓜ️ 微软服务", en: "Ⓜ️ Microsoft", type: "GEOSITE", payload: "microsoft", defaultTarget: "Ⓜ️ 微软服务" },
+  { label: "🎮 Steam", en: "🎮 Steam", type: "GEOSITE", payload: "steam", defaultTarget: "🎮 Steam" },
+  { label: "🌍 国外网站", en: "🌍 Foreign sites", type: "GEOSITE", payload: "geolocation-!cn", defaultTarget: "🚀 手动选择" },
+  { label: "🇨🇳 国内域名", en: "🇨🇳 China domains", type: "GEOSITE", payload: "cn", defaultTarget: "🎯 全球直连" },
+  { label: "🇨🇳 国内 IP", en: "🇨🇳 China IP", type: "GEOIP", payload: "cn", defaultTarget: "🎯 全球直连" },
+  { label: "✈️ Telegram IP", en: "✈️ Telegram IP", type: "GEOIP", payload: "telegram", defaultTarget: "💬 即时通讯" },
 ];
 
 function catRuleOf(rules: RuleItem[], cat: RuleCat): RuleItem | undefined {
@@ -61,6 +63,7 @@ const targetTone = (t: string): any => {
 };
 
 export function Rules() {
+  const { t, lang } = useI18n();
   const [tab, setTab] = useState<"rules" | "ruleset" | "config">("rules");
   const [q, setQ] = useState("");
   const [rawRules, setRawRules] = useState<RuleItem[]>([]);
@@ -125,8 +128,8 @@ export function Rules() {
   }
   async function submitAdd() {
     const payload = isMatch ? "" : form.payload.trim();
-    if (!isMatch && !payload) { setAddError("请填写匹配内容"); return; }
-    if (!form.target) { setAddError("请选择出站策略"); return; }
+    if (!isMatch && !payload) { setAddError(t("请填写匹配内容", "Please enter the match content")); return; }
+    if (!form.target) { setAddError(t("请选择出站策略", "Please choose an outbound")); return; }
     setSaving(true);
     setAddError(null);
     try {
@@ -134,7 +137,7 @@ export function Rules() {
       setAddOpen(false);
       reload();
     } catch (e) {
-      setAddError(e instanceof Error ? e.message : "添加失败");
+      setAddError(e instanceof Error ? e.message : t("添加失败", "Add failed"));
     } finally {
       setSaving(false);
     }
@@ -161,8 +164,8 @@ export function Rules() {
     if (!editTarget) return;
     const isM = editForm.type === "MATCH";
     const payload = isM ? "" : editForm.payload.trim();
-    if (!isM && !payload) { setEditError("请填写匹配内容"); return; }
-    if (!editForm.target) { setEditError("请选择出站策略"); return; }
+    if (!isM && !payload) { setEditError(t("请填写匹配内容", "Please enter the match content")); return; }
+    if (!editForm.target) { setEditError(t("请选择出站策略", "Please choose an outbound")); return; }
     setSavingEdit(true);
     setEditError(null);
     try {
@@ -170,7 +173,7 @@ export function Rules() {
       setEditTarget(null);
       reload();
     } catch (e) {
-      setEditError(e instanceof Error ? e.message : "更新失败");
+      setEditError(e instanceof Error ? e.message : t("更新失败", "Update failed"));
     } finally {
       setSavingEdit(false);
     }
@@ -191,7 +194,7 @@ export function Rules() {
       }
       setTimeout(reload, 500);
     } catch (e) {
-      setGeoMsg(e instanceof Error ? e.message : "操作失败");
+      setGeoMsg(e instanceof Error ? e.message : t("操作失败", "Operation failed"));
       setTimeout(() => setGeoMsg(null), 5000);
     } finally {
       setTimeout(() => setTogglingCat(null), 500);
@@ -205,11 +208,11 @@ export function Rules() {
     setGeoMsg(null);
     try {
       await api.updateGeo();
-      setGeoMsg("✓ GEO 数据已更新并热加载");
+      setGeoMsg(t("✓ GEO 数据已更新并热加载", "✓ GEO data updated & hot-loaded"));
       setTimeout(reload, 600);
       setTimeout(() => setGeoMsg(null), 4000);
     } catch (e) {
-      setGeoMsg(e instanceof Error ? e.message : "更新失败（内核未运行或下载超时）");
+      setGeoMsg(e instanceof Error ? e.message : t("更新失败（内核未运行或下载超时）", "Update failed (kernel not running or download timed out)"));
       setTimeout(() => setGeoMsg(null), 6000);
     } finally {
       setUpdatingGeo(false);
@@ -235,9 +238,9 @@ export function Rules() {
   async function submitAddRp() {
     const name = rpForm.name.trim();
     const url = rpForm.url.trim();
-    if (!name) { setRpError("请填写规则集名称"); return; }
-    if (!url) { setRpError("请填写订阅 URL"); return; }
-    if (!rpForm.target) { setRpError("请选择出站策略"); return; }
+    if (!name) { setRpError(t("请填写规则集名称", "Please enter a rule-set name")); return; }
+    if (!url) { setRpError(t("请填写订阅 URL", "Please enter the subscription URL")); return; }
+    if (!rpForm.target) { setRpError(t("请选择出站策略", "Please choose an outbound")); return; }
     setSavingRp(true);
     setRpError(null);
     try {
@@ -246,7 +249,7 @@ export function Rules() {
       setAddRpOpen(false);
       setTimeout(reload, 600);
     } catch (e) {
-      setRpError(e instanceof Error ? e.message : "添加失败");
+      setRpError(e instanceof Error ? e.message : t("添加失败", "Add failed"));
     } finally {
       setSavingRp(false);
     }
@@ -273,16 +276,16 @@ export function Rules() {
   return (
     <div className="page">
       <div className="grid cols-3">
-        <Mini icon={<ListFilter size={18} />} c="#0a84ff" label="规则条数" value={String(rawRules.length)} />
-        <Mini icon={<Database size={18} />} c="#bf5af2" label="启用分类" value={`${enabledCatCount}/${RULE_CATS.length}`} />
-        <Mini icon={<FileText size={18} />} c="#30d158" label="兜底策略" value={matchRule?.target ?? "—"} />
+        <Mini icon={<ListFilter size={18} />} c="#0a84ff" label={t("规则条数", "Rules")} value={String(rawRules.length)} />
+        <Mini icon={<Database size={18} />} c="#bf5af2" label={t("启用分类", "Enabled cats")} value={`${enabledCatCount}/${RULE_CATS.length}`} />
+        <Mini icon={<FileText size={18} />} c="#30d158" label={t("兜底策略", "Fallback")} value={matchRule?.target ?? "—"} />
       </div>
 
       <div className="row gap-2" style={{ marginTop: 2 }}>
         {([
-          { k: "rules", label: "分流规则" },
-          { k: "ruleset", label: "规则集" },
-          { k: "config", label: "配置源码" },
+          { k: "rules", label: t("分流规则", "Rules") },
+          { k: "ruleset", label: t("规则集", "Rule-sets") },
+          { k: "config", label: t("配置源码", "Raw config") },
         ] as const).map((t) => (
           <button key={t.k} className={`btn btn-sm ${tab === t.k ? "btn-primary" : "btn-ghost"}`} onClick={() => setTab(t.k)}>
             {t.label}
@@ -294,15 +297,15 @@ export function Rules() {
       <GlassCard>
         <CardHead
           icon={<Database size={18} color="var(--purple)" />}
-          title="规则分类（开关 = 配置里的分流规则）"
-          sub="每个开关直接对应 config 内置 GEOSITE/GEOIP 规则 · 拨动即增删并热重载 · 已启用的来自你当前配置"
+          title={t("规则分类（开关 = 配置里的分流规则）", "Rule categories (toggle = a rule in your config)")}
+          sub={t("每个开关直接对应 config 内置 GEOSITE/GEOIP 规则 · 拨动即增删并热重载 · 已启用的来自你当前配置", "Each toggle maps to a built-in GEOSITE/GEOIP rule in config · toggling adds/removes & hot-reloads · enabled ones reflect your current config")}
           right={
             <div className="row gap-2" style={{ alignItems: "center" }}>
               {geoMsg && <span style={{ fontSize: 12, color: geoMsg.startsWith("✓") ? "var(--green)" : "var(--red)" }}>{geoMsg}</span>}
-              <button className="btn btn-ghost btn-sm" onClick={updateGeo} disabled={updatingGeo} title="重新下载 geoip.dat/geosite.dat 并热加载（分类规则的归类依赖它）">
-                <RefreshCw size={14} className={updatingGeo ? "spin" : ""} /> {updatingGeo ? "更新中…" : "更新 GEO 数据"}
+              <button className="btn btn-ghost btn-sm" onClick={updateGeo} disabled={updatingGeo} title={t("重新下载 geoip.dat/geosite.dat 并热加载（分类规则的归类依赖它）", "Re-download geoip.dat/geosite.dat & hot-load (categories depend on it)")}>
+                <RefreshCw size={14} className={updatingGeo ? "spin" : ""} /> {updatingGeo ? t("更新中…", "Updating…") : t("更新 GEO 数据", "Update GEO")}
               </button>
-              <button className="btn btn-primary btn-sm" onClick={openAddRp}><Plus size={14} /> 自定义规则集</button>
+              <button className="btn btn-primary btn-sm" onClick={openAddRp}><Plus size={14} /> {t("自定义规则集", "Custom rule-set")}</button>
             </div>
           }
         />
@@ -319,7 +322,7 @@ export function Rules() {
               >
                 <div className="col" style={{ gap: 4, minWidth: 0 }}>
                   <div className="row" style={{ gap: 8 }}>
-                    <span style={{ fontWeight: 600, fontSize: 13.5 }}>{cat.label}</span>
+                    <span style={{ fontWeight: 600, fontSize: 13.5 }}>{lang === "en" ? cat.en : cat.label}</span>
                     <Pill tone={cat.type === "GEOIP" ? "orange" : "blue"}>{cat.type}</Pill>
                   </div>
                   <span className="muted-2 mono" style={{ fontSize: 10.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
@@ -340,7 +343,7 @@ export function Rules() {
 
         {ruleProviders.length > 0 && (
           <>
-            <div style={{ margin: "16px 0 8px", fontSize: 12.5, fontWeight: 600, color: "var(--t2)" }}>自定义规则集 (rule-providers)</div>
+            <div style={{ margin: "16px 0 8px", fontSize: 12.5, fontWeight: 600, color: "var(--t2)" }}>{t("自定义规则集 (rule-providers)", "Custom rule-sets (rule-providers)")}</div>
             <div className="grid cols-4">
               {ruleProviders.map((p) => (
                 <div key={p.name} className="col" style={{ gap: 8, padding: 14, borderRadius: "var(--r-md)", background: "var(--fill-2)", border: "1px solid var(--hairline)" }}>
@@ -348,16 +351,16 @@ export function Rules() {
                     <span style={{ fontWeight: 600, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
                     <div className="row" style={{ gap: 6 }}>
                       <Pill tone={p.behavior === "ipcidr" ? "orange" : "blue"}>{p.behavior}</Pill>
-                      <button className="icon-btn" style={{ width: 26, height: 26 }} title="立即更新该规则集" onClick={() => updateOne(p.name)} disabled={updatingOne === p.name}>
+                      <button className="icon-btn" style={{ width: 26, height: 26 }} title={t("立即更新该规则集", "Update this rule-set now")} onClick={() => updateOne(p.name)} disabled={updatingOne === p.name}>
                         <RefreshCw size={13} className={updatingOne === p.name ? "spin" : ""} />
                       </button>
-                      <button className="icon-btn" style={{ width: 26, height: 26 }} title="删除该规则集" onClick={() => setDelRp(p.name)}>
+                      <button className="icon-btn" style={{ width: 26, height: 26 }} title={t("删除该规则集", "Delete this rule-set")} onClick={() => setDelRp(p.name)}>
                         <Trash2 size={13} />
                       </button>
                     </div>
                   </div>
                   <span className="mono" style={{ fontSize: 20, fontWeight: 700 }}>{p.count.toLocaleString()}</span>
-                  <span className="muted-2" style={{ fontSize: 11 }}>{p.type} · {p.updatedAt ? `更新于 ${p.updatedAt}前` : "待内核加载"}</span>
+                  <span className="muted-2" style={{ fontSize: 11 }}>{p.type} · {p.updatedAt ? `${t("更新于", "updated")} ${p.updatedAt}${t("前", " ago")}` : t("待内核加载", "pending kernel load")}</span>
                 </div>
               ))}
             </div>
@@ -370,8 +373,8 @@ export function Rules() {
       <GlassCard>
         <CardHead
           icon={<ListFilter size={18} color="var(--blue)" />}
-          title="分流规则"
-          sub="按优先级从上到下匹配 · 命中 = 当前活动连接数（每 5s 刷新）"
+          title={t("分流规则", "Routing Rules")}
+          sub={t("按优先级从上到下匹配 · 命中 = 当前活动连接数（每 5s 刷新）", "Matched top-down by priority · hits = current active connections (refresh every 5s)")}
           right={
             <div className="row gap-2">
               <div className="row" style={{ background: "var(--fill-2)", border: "1px solid var(--hairline)", borderRadius: "var(--r-sm)", padding: "0 12px", height: 34 }}>
@@ -379,11 +382,11 @@ export function Rules() {
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
-                  placeholder="搜索规则"
+                  placeholder={t("搜索规则", "Search rules")}
                   style={{ background: "transparent", border: "none", outline: "none", color: "var(--t1)", fontSize: 13, width: 160, marginLeft: 8, fontFamily: "inherit" }}
                 />
               </div>
-              <button className="btn btn-primary btn-sm" onClick={openAdd}><Plus size={14} /> 添加规则</button>
+              <button className="btn btn-primary btn-sm" onClick={openAdd}><Plus size={14} /> {t("添加规则", "Add Rule")}</button>
             </div>
           }
         />
@@ -391,10 +394,10 @@ export function Rules() {
           <thead>
             <tr>
               <th style={{ width: 40 }}>#</th>
-              <th>类型</th>
-              <th>匹配内容</th>
-              <th>出站</th>
-              <th style={{ textAlign: "right", width: 64 }}>命中</th>
+              <th>{t("类型", "Type")}</th>
+              <th>{t("匹配内容", "Match")}</th>
+              <th>{t("出站", "Outbound")}</th>
+              <th style={{ textAlign: "right", width: 64 }}>{t("命中", "Hits")}</th>
               <th></th>
             </tr>
           </thead>
@@ -403,15 +406,15 @@ export function Rules() {
               <tr key={r.type + r.payload + i}>
                 <td className="muted-2 mono">{i + 1}</td>
                 <td><span className="mono muted" style={{ fontSize: 11.5 }}>{r.type}</span></td>
-                <td style={{ fontWeight: r.type === "MATCH" ? 400 : 600 }}>{r.payload || <span className="muted-2">（兜底）</span>}</td>
+                <td style={{ fontWeight: r.type === "MATCH" ? 400 : 600 }}>{r.payload || <span className="muted-2">{t("（兜底）", "(fallback)")}</span>}</td>
                 <td><Pill tone={targetTone(r.target)}>{r.target}</Pill></td>
                 <td style={{ textAlign: "right" }}>
                   {r.hit ? <span className="mono" style={{ fontSize: 12, color: "var(--green)", fontWeight: 700 }}>{r.hit}</span> : <span className="muted-2" style={{ fontSize: 11 }}>—</span>}
                 </td>
                 <td>
                   <div className="row" style={{ justifyContent: "flex-end", gap: 6 }}>
-                    <button className="icon-btn" style={{ width: 28, height: 28 }} title="编辑规则" onClick={() => openEdit(r)}><Pencil size={13} /></button>
-                    <button className="icon-btn" style={{ width: 28, height: 28 }} title="删除规则" onClick={() => setDelTarget(r)}><Trash2 size={13} /></button>
+                    <button className="icon-btn" style={{ width: 28, height: 28 }} title={t("编辑规则", "Edit rule")} onClick={() => openEdit(r)}><Pencil size={13} /></button>
+                    <button className="icon-btn" style={{ width: 28, height: 28 }} title={t("删除规则", "Delete rule")} onClick={() => setDelTarget(r)}><Trash2 size={13} /></button>
                   </div>
                 </td>
               </tr>
@@ -425,26 +428,26 @@ export function Rules() {
 
       {addOpen && (
         <Modal
-          title="添加分流规则"
-          sub="新规则会插入到 MATCH 兜底之前"
+          title={t("添加分流规则", "Add Routing Rule")}
+          sub={t("新规则会插入到 MATCH 兜底之前", "New rule is inserted before the MATCH fallback")}
           width={460}
           onClose={() => !saving && setAddOpen(false)}
           icon={<span className="stat-ico" style={{ width: 36, height: 36, background: "var(--accent-grad)" }}><ListFilter size={17} /></span>}
           footer={
             <>
-              <button className="btn btn-ghost" onClick={() => setAddOpen(false)} disabled={saving}>取消</button>
+              <button className="btn btn-ghost" onClick={() => setAddOpen(false)} disabled={saving}>{t("取消", "Cancel")}</button>
               <button className="btn btn-primary" onClick={submitAdd} disabled={saving} style={{ gap: 8 }}>
                 {saving ? <RefreshCw size={15} className="spin" /> : <Plus size={15} />}
-                {saving ? "添加中…" : "添加规则"}
+                {saving ? t("添加中…", "Adding…") : t("添加规则", "Add Rule")}
               </button>
             </>
           }
         >
-          <FormField label="规则类型">
+          <FormField label={t("规则类型", "Rule type")}>
             <Select value={form.type} options={RULE_TYPES} onChange={(v) => setForm((f) => ({ ...f, type: v }))} />
           </FormField>
           {!isMatch && (
-            <FormField label="匹配内容" hint="如 openai.com / 142.250.0.0/15 / google">
+            <FormField label={t("匹配内容", "Match content")} hint={t("如 openai.com / 142.250.0.0/15 / google", "e.g. openai.com / 142.250.0.0/15 / google")}>
               <input
                 className="input"
                 style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}
@@ -456,7 +459,7 @@ export function Rules() {
               />
             </FormField>
           )}
-          <FormField label="出站策略">
+          <FormField label={t("出站策略", "Outbound")}>
             <Select value={form.target} options={targets} onChange={(v) => setForm((f) => ({ ...f, target: v }))} />
           </FormField>
           {addError && <InlineError>{addError}</InlineError>}
@@ -465,11 +468,11 @@ export function Rules() {
 
       {delTarget && (
         <ConfirmDialog
-          title="删除规则"
+          title={t("删除规则", "Delete Rule")}
           danger
           busy={deleting}
-          confirmText={deleting ? "删除中…" : "删除"}
-          message={<>确定删除规则 <b className="mono" style={{ color: "var(--t1)" }}>{ruleRaw(delTarget)}</b>？</>}
+          confirmText={deleting ? t("删除中…", "Deleting…") : t("删除", "Delete")}
+          message={<>{t("确定删除规则 ", "Delete rule ")}<b className="mono" style={{ color: "var(--t1)" }}>{ruleRaw(delTarget)}</b>{t("？", "?")}</>}
           onConfirm={confirmDel}
           onCancel={() => !deleting && setDelTarget(null)}
         />
@@ -477,30 +480,30 @@ export function Rules() {
 
       {editTarget && (
         <Modal
-          title="编辑分流规则"
-          sub="就地修改，保留该规则在列表中的优先级位置"
+          title={t("编辑分流规则", "Edit Routing Rule")}
+          sub={t("就地修改，保留该规则在列表中的优先级位置", "Edit in place, keeping the rule's priority position")}
           width={460}
           onClose={() => !savingEdit && setEditTarget(null)}
           icon={<span className="stat-ico" style={{ width: 36, height: 36, background: "var(--accent-grad)" }}><Pencil size={17} /></span>}
           footer={
             <>
-              <button className="btn btn-ghost" onClick={() => setEditTarget(null)} disabled={savingEdit}>取消</button>
+              <button className="btn btn-ghost" onClick={() => setEditTarget(null)} disabled={savingEdit}>{t("取消", "Cancel")}</button>
               <button className="btn btn-primary" onClick={submitEdit} disabled={savingEdit} style={{ gap: 8 }}>
                 {savingEdit ? <RefreshCw size={15} className="spin" /> : <Pencil size={15} />}
-                {savingEdit ? "保存中…" : "保存修改"}
+                {savingEdit ? t("保存中…", "Saving…") : t("保存修改", "Save")}
               </button>
             </>
           }
         >
-          <FormField label="规则类型">
+          <FormField label={t("规则类型", "Rule type")}>
             <Select
               value={editForm.type}
-              options={RULE_TYPES.some((t) => t.value === editForm.type) ? RULE_TYPES : [{ value: editForm.type, label: editForm.type }, ...RULE_TYPES]}
+              options={RULE_TYPES.some((rt) => rt.value === editForm.type) ? RULE_TYPES : [{ value: editForm.type, label: editForm.type }, ...RULE_TYPES]}
               onChange={(v) => setEditForm((f) => ({ ...f, type: v }))}
             />
           </FormField>
           {editForm.type !== "MATCH" && (
-            <FormField label="匹配内容" hint="如 openai.com / 142.250.0.0/15 / google">
+            <FormField label={t("匹配内容", "Match content")} hint={t("如 openai.com / 142.250.0.0/15 / google", "e.g. openai.com / 142.250.0.0/15 / google")}>
               <input
                 className="input"
                 style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}
@@ -512,10 +515,10 @@ export function Rules() {
               />
             </FormField>
           )}
-          <FormField label="出站策略">
+          <FormField label={t("出站策略", "Outbound")}>
             <Select
               value={editForm.target}
-              options={targets.some((t) => t.value === editForm.target) ? targets : [{ value: editForm.target, label: editForm.target }, ...targets]}
+              options={targets.some((tg) => tg.value === editForm.target) ? targets : [{ value: editForm.target, label: editForm.target }, ...targets]}
               onChange={(v) => setEditForm((f) => ({ ...f, target: v }))}
             />
           </FormField>
@@ -525,22 +528,22 @@ export function Rules() {
 
       {addRpOpen && (
         <Modal
-          title="添加自定义规则集"
-          sub="远程 rule-provider（用于内置 GEOSITE 没覆盖的场景），自动追加 RULE-SET 规则到 MATCH 之前"
+          title={t("添加自定义规则集", "Add Custom Rule-set")}
+          sub={t("远程 rule-provider（用于内置 GEOSITE 没覆盖的场景），自动追加 RULE-SET 规则到 MATCH 之前", "Remote rule-provider (for cases built-in GEOSITE doesn't cover); a RULE-SET rule is appended before MATCH")}
           width={480}
           onClose={() => !savingRp && setAddRpOpen(false)}
           icon={<span className="stat-ico" style={{ width: 36, height: 36, background: "var(--accent-grad)" }}><Database size={17} /></span>}
           footer={
             <>
-              <button className="btn btn-ghost" onClick={() => setAddRpOpen(false)} disabled={savingRp}>取消</button>
+              <button className="btn btn-ghost" onClick={() => setAddRpOpen(false)} disabled={savingRp}>{t("取消", "Cancel")}</button>
               <button className="btn btn-primary" onClick={submitAddRp} disabled={savingRp} style={{ gap: 8 }}>
                 {savingRp ? <RefreshCw size={15} className="spin" /> : <Plus size={15} />}
-                {savingRp ? "添加中…" : "添加规则集"}
+                {savingRp ? t("添加中…", "Adding…") : t("添加规则集", "Add rule-set")}
               </button>
             </>
           }
         >
-          <FormField label="名称" hint="唯一标识，如 reject-ad / cn-ip">
+          <FormField label={t("名称", "Name")} hint={t("唯一标识，如 reject-ad / cn-ip", "Unique id, e.g. reject-ad / cn-ip")}>
             <input
               className="input"
               placeholder="reject-ad"
@@ -549,7 +552,7 @@ export function Rules() {
               onChange={(e) => setRpForm((f) => ({ ...f, name: e.target.value }))}
             />
           </FormField>
-          <FormField label="订阅 URL">
+          <FormField label={t("订阅 URL", "Subscription URL")}>
             <input
               className="input"
               style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}
@@ -559,18 +562,18 @@ export function Rules() {
             />
           </FormField>
           <div className="row gap-2">
-            <FormField label="行为 (behavior)">
+            <FormField label={t("行为 (behavior)", "Behavior")}>
               <Select
                 value={rpForm.behavior}
                 options={[
-                  { value: "domain", label: "domain 域名" },
-                  { value: "ipcidr", label: "ipcidr IP段" },
-                  { value: "classical", label: "classical 综合" },
+                  { value: "domain", label: t("domain 域名", "domain") },
+                  { value: "ipcidr", label: t("ipcidr IP段", "ipcidr") },
+                  { value: "classical", label: t("classical 综合", "classical") },
                 ]}
                 onChange={(v) => setRpForm((f) => ({ ...f, behavior: v }))}
               />
             </FormField>
-            <FormField label="格式 (format)">
+            <FormField label={t("格式 (format)", "Format")}>
               <Select
                 value={rpForm.format}
                 options={[
@@ -582,10 +585,10 @@ export function Rules() {
               />
             </FormField>
           </div>
-          <FormField label="出站策略" hint="命中该规则集的流量走此策略">
+          <FormField label={t("出站策略", "Outbound")} hint={t("命中该规则集的流量走此策略", "Traffic matching this rule-set uses this outbound")}>
             <Select value={rpForm.target} options={targets} onChange={(v) => setRpForm((f) => ({ ...f, target: v }))} />
           </FormField>
-          <FormField label="自动更新间隔（小时）" hint="到期由内核自动重新下载该规则集；默认 24 小时">
+          <FormField label={t("自动更新间隔（小时）", "Auto-update interval (hours)")} hint={t("到期由内核自动重新下载该规则集；默认 24 小时", "Kernel re-downloads the rule-set on expiry; default 24h")}>
             <input
               className="input"
               type="number"
@@ -601,11 +604,11 @@ export function Rules() {
 
       {delRp && (
         <ConfirmDialog
-          title="删除规则集"
+          title={t("删除规则集", "Delete Rule-set")}
           danger
           busy={deletingRp}
-          confirmText={deletingRp ? "删除中…" : "删除"}
-          message={<>确定删除规则集 <b className="mono" style={{ color: "var(--t1)" }}>{delRp}</b>？将同时移除其 RULE-SET 规则与缓存文件。</>}
+          confirmText={deletingRp ? t("删除中…", "Deleting…") : t("删除", "Delete")}
+          message={<>{t("确定删除规则集 ", "Delete rule-set ")}<b className="mono" style={{ color: "var(--t1)" }}>{delRp}</b>{t("？将同时移除其 RULE-SET 规则与缓存文件。", "? Its RULE-SET rule and cache file will also be removed.")}</>}
           onConfirm={confirmDelRp}
           onCancel={() => !deletingRp && setDelRp(null)}
         />
