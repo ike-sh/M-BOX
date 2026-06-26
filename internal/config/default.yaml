@@ -1,0 +1,230 @@
+# M-BOX 默认配置 —— 旁路由透明代理（开箱即用）
+# 说明：本配置不含任何节点也能正常启动；安装后请在 Web 面板
+#   「订阅管理」添加机场订阅，或在「节点管理」手动添加节点。
+# 工作目录约定：mihomo -d /etc/mbox （本文件部署为 /etc/mbox/config.yaml）
+
+mixed-port: 7890           # 本地 http/socks 调试端口（可选）
+allow-lan: true            # 透明代理走 TUN（L3），此项仅影响 mixed-port 等入站监听
+bind-address: "127.0.0.1"  # mixed-port 仅绑本机：避免局域网把网关当“无鉴权开放代理”滥用/跳板（透明代理走 TUN，不受影响）
+mode: rule
+log-level: info
+ipv6: false                # 默认关 IPv6，避免半开导致泄漏（面板可一键开）
+unified-delay: true
+tcp-concurrent: true
+
+# external-controller 仅绑本地：M-BOX daemon / 面板通过它控制 mihomo
+external-controller: 127.0.0.1:9090
+secret: ""                 # 后续由 daemon 注入随机 secret
+
+# Geo 数据（GEOIP/GEOSITE 规则依赖；安装包已内置 geoip.dat / geosite.dat）
+geodata-mode: true
+geo-auto-update: false     # 离线场景默认关闭自动更新，避免启动时联网失败
+geo-update-interval: 24
+
+profile:
+  store-selected: true     # 记住手动选择的节点
+  store-fake-ip: true      # 持久化 fake-ip 映射
+
+# ── 透明代理：TUN + auto-redirect（Linux 网关关键）────────────────
+tun:
+  enable: true
+  device: mbox-tun
+  stack: mixed             # system 性能最好 / gvisor 兼容最好 / mixed 折中
+  auto-route: true
+  auto-redirect: true      # 基于 nftables，处理转发流量，性能优于 tproxy
+  auto-detect-interface: true
+  strict-route: true       # 防泄漏
+  gso: true                # 通用分段卸载(Linux)：高带宽下提升吞吐、降 CPU（现网 PVE 网卡 + auto-redirect 已验证稳定）
+  gso-max-size: 65536
+  endpoint-independent-nat: true  # 全锥 NAT：改善游戏联机/P2P/VoIP 的 UDP 体验
+  dns-hijack:
+    - any:53
+    - tcp://any:53
+
+# ── DNS：fake-ip + 加密上游 + 域名分流 + DNS去广告（开箱即用增强）──────────
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  ipv6: false              # 默认关 IPv6 解析，避免半开泄漏（面板可一键开）
+  enhanced-mode: fake-ip   # fake-ip 根治污染/泄漏
+  fake-ip-range: 198.18.0.1/16
+  prefer-h3: true          # DoH 优先走 HTTP/3，弱网下更快（不支持自动回退 h2）
+  cache-algorithm: arc     # ARC 缓存，突发访问命中率优于 LRU
+  use-hosts: true          # 启用自定义 hosts
+  use-system-hosts: true   # 叠加读取系统 /etc/hosts
+  fake-ip-filter:          # 这些域名走真实解析，不进 fake-ip
+    - "*.lan"
+    - "*.local"
+    - "+.market.xiaomi.com"
+    - "+.qq.com"
+    - "time.*.com"
+    - "ntp.*.com"
+    - "+.pool.ntp.org"
+  default-nameserver:      # 用于引导解析下面 DoH 服务器域名
+    - 223.5.5.5
+    - 119.29.29.29
+  nameserver:             # 默认/国外上游（加密 DoH）
+    - https://1.1.1.1/dns-query
+    - https://dns.google/dns-query
+  proxy-server-nameserver: # 解析代理节点自身域名，避免 DNS 环路（用国内可直连上游）
+    - https://223.5.5.5/dns-query
+  nameserver-policy:      # 域名分流 + DNS 层去广告
+    "geosite:category-ads-all":   # 广告域名在解析阶段直接拦截（返回空应答）
+      - rcode://success
+    "geosite:cn":                 # 国内域名走国内 DNS，快且准
+      - https://223.5.5.5/dns-query
+      - https://119.29.29.29/dns-query
+    "geosite:geolocation-!cn":    # 国外域名走国外加密 DoH，防污染
+      - https://1.1.1.1/dns-query
+      - https://dns.google/dns-query
+
+# ── 流量嗅探：从 TLS/QUIC/HTTP 握手提取真实域名，用于按域名分流 ────────────────
+# 对“硬编码 IP / 不经本网关 DNS（部分 App 自带解析）”的连接也能正确按域名分流，
+# 减少误直连与分流泄漏。override-destination=false：仅用嗅探域名做规则匹配，不改写目的地址（更稳）。
+sniffer:
+  enable: true
+  override-destination: false
+  sniff:
+    HTTP:
+      ports: [80, 8080-8880]
+    TLS:
+      ports: [443, 8443]
+    QUIC:
+      ports: [443]
+  skip-domain:
+    - "+.push.apple.com"        # 苹果推送握手无可用 SNI，跳过避免误判
+
+# ── 节点（默认空；在面板「节点与策略」手动添加或导入订阅后自动填充）──
+proxies: []
+
+# ── 策略组（完整分类布局；参考主流模板，用内置 GEOSITE 分流）────────────────
+#  说明（重要）：
+#   · 这是「零节点默认布局」——所有分类组先指向 手动选择 → 全球直连，没节点时安全走直连，
+#     不会因空的 url-test 组导致 mihomo 起不来或偷偷走直连泄漏。
+#   · 一旦在面板「订阅管理」添加订阅，daemon 会**自动补齐**「♻️自动选择(自动测速)」+
+#     地区分组(🇭🇰🇺🇸🇯🇵… 只生成你订阅里确有节点的地区) 并把订阅节点接入各组，
+#     升级成与参考模板一致的完整布局（也可随时在「规则与配置 → 配置源码 → 一键推荐策略」手动重建）。
+proxy-groups:
+  - name: 🚀 手动选择
+    type: select
+    proxies: [🎯 全球直连]
+  - name: 💬 即时通讯
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🌐 社交媒体
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🚀 GitHub
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🤖 ChatGPT
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🤖 AI服务
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎶 TikTok
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 📹 YouTube
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎥 Netflix
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎥 DisneyPlus
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎥 HBO
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎥 PrimeVideo
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎥 AppleTV+
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎥 Emby
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎻 Spotify
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 📺 Bahamut
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🌎 国外媒体
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🛒 国外电商
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 📢 谷歌FCM
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🇬 谷歌服务
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🍎 苹果服务
+    type: select
+    proxies: [🎯 全球直连, 🚀 手动选择]
+  - name: Ⓜ️ 微软服务
+    type: select
+    proxies: [🎯 全球直连, 🚀 手动选择]
+  - name: 🎮 游戏平台
+    type: select
+    proxies: [🎯 全球直连, 🚀 手动选择]
+  - name: 🎮 Steam
+    type: select
+    proxies: [🎯 全球直连, 🚀 手动选择]
+  - name: 🚀 测速工具
+    type: select
+    proxies: [🎯 全球直连, 🚀 手动选择]
+  - name: 🐟 漏网之鱼
+    type: select
+    proxies: [🚀 手动选择, 🎯 全球直连]
+  - name: 🎯 全球直连
+    type: select
+    proxies: [DIRECT]
+
+# ── 分流规则（完整版；全部用内置 GEOSITE/GEOIP，离线可用，含去广告）────────────
+rules:
+  - GEOSITE,private,🎯 全球直连
+  - GEOIP,private,🎯 全球直连,no-resolve
+  - DST-PORT,853,REJECT          # 封 DoT(DNS over TLS) 绕过，强制走网关 DNS（防 DNS 泄漏）
+  - GEOSITE,category-ads-all,REJECT
+  - GEOSITE,google-cn,🎯 全球直连
+  - GEOSITE,category-games@cn,🎯 全球直连
+  - GEOSITE,category-communication,💬 即时通讯
+  - GEOSITE,category-social-media-!cn,🌐 社交媒体
+  - GEOSITE,github,🚀 GitHub
+  - GEOSITE,openai,🤖 ChatGPT
+  - GEOSITE,category-ai-!cn,🤖 AI服务
+  - GEOSITE,tiktok,🎶 TikTok
+  - GEOSITE,youtube,📹 YouTube
+  - GEOSITE,netflix,🎥 Netflix
+  - GEOSITE,disney,🎥 DisneyPlus
+  - GEOSITE,hbo,🎥 HBO
+  - GEOSITE,primevideo,🎥 PrimeVideo
+  - GEOSITE,apple-tvplus,🎥 AppleTV+
+  - GEOSITE,category-emby,🎥 Emby
+  - GEOSITE,spotify,🎻 Spotify
+  - GEOSITE,bahamut,📺 Bahamut
+  - GEOSITE,category-entertainment,🌎 国外媒体
+  - GEOSITE,category-ecommerce,🛒 国外电商
+  - GEOSITE,googlefcm,📢 谷歌FCM
+  - GEOSITE,google,🇬 谷歌服务
+  - GEOSITE,apple,🍎 苹果服务
+  - GEOSITE,microsoft,Ⓜ️ 微软服务
+  - GEOSITE,steam,🎮 Steam
+  - GEOSITE,category-games,🎮 游戏平台
+  - GEOSITE,category-speedtest,🚀 测速工具
+  - GEOSITE,geolocation-!cn,🚀 手动选择
+  - GEOIP,telegram,💬 即时通讯,no-resolve
+  - GEOIP,twitter,🌐 社交媒体,no-resolve
+  - GEOIP,facebook,🌐 社交媒体,no-resolve
+  - GEOIP,netflix,🎥 Netflix,no-resolve
+  - GEOIP,google,🇬 谷歌服务,no-resolve
+  - GEOSITE,cn,🎯 全球直连
+  - GEOIP,cn,🎯 全球直连,no-resolve
+  - MATCH,🐟 漏网之鱼

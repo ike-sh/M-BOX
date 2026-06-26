@@ -1,0 +1,26 @@
+[Unit]
+Description=M-BOX daemon (panel API + mihomo manager)
+Documentation=https://github.com/ike-sh/M-BOX
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# daemon 托管 mihomo 子进程：因此这里不再单独 enable mbox-core.service。
+# 若希望 mihomo 由独立 service 管理，把 MBOX_MANAGE 设为 0 并启用 mbox-core.service。
+Environment=MBOX_LISTEN=0.0.0.0:8088
+Environment=MBOX_WORKDIR=/etc/mbox
+Environment=MBOX_MIHOMO_BIN=/usr/local/bin/mihomo
+Environment=MBOX_CONTROLLER=127.0.0.1:9090
+Environment=MBOX_WEBDIR=/etc/mbox/web
+Environment=MBOX_MANAGE=1
+ExecStart=/usr/local/bin/mbox
+Restart=on-failure
+RestartSec=3s
+LimitNOFILE=1000000
+# mihomo TUN / nftables 所需能力（daemon 拉起 mihomo 时继承）
+AmbientCapabilities=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

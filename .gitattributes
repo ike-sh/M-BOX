@@ -1,0 +1,8 @@
+# 统一换行：Shell 脚本必须 LF，避免在 Windows 检出/打包时带入 CRLF(\r)，
+# 否则在 Linux 上 bash 解析会报 "set: invalid option name" 等错误。
+*.sh text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+# 二进制产物不做换行转换
+*.dat binary
+*.gz binary

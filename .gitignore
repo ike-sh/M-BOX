@@ -1,0 +1,35 @@
+# ===== 编译产物 / 二进制 =====
+/mbox
+/mbox-linux
+/mbox.exe
+/mbox.exe~
+/cmd/mbox/mbox
+/cmd/mbox/mbox.exe
+*.test
+
+# 离线整包与打包暂存
+/dist-pkg/
+/.pkg-stage/
+
+# ===== 前端依赖与构建产物 =====
+/web/node_modules/
+/web/dist/
+*.tsbuildinfo
+
+# ===== 运行时 / 本地开发工作目录 =====
+/.mbox-dev/
+/scripts/.cache/
+
+# ===== 维护者私有部署工具（含服务器地址/密码/密钥/现网配置，禁止公开）=====
+/scripts/dev-ssh/
+
+# ===== Geo 数据（体积大，安装时自动下载或随离线包分发）=====
+*.dat
+
+# ===== 杂项 =====
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
