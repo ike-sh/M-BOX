@@ -4,6 +4,7 @@ import { Sidebar } from "./components/Sidebar";
 import { TopBar, type Mode } from "./components/TopBar";
 import { SystemProvider } from "./lib/system";
 import { SubAlertsProvider } from "./lib/subAlerts";
+import { I18nProvider, useI18n } from "./lib/i18n";
 
 /**
  * 页面按路由懒加载（code-split）：首屏只下载仪表盘所需代码，其余页面在导航到时
@@ -31,19 +32,19 @@ function PageFallback() {
   );
 }
 
-const META: Record<string, { title: string; sub: string }> = {
-  "/": { title: "仪表盘", sub: "实时流量、节点与系统总览" },
-  "/proxies": { title: "节点管理", sub: "策略组切换、节点延迟与测速" },
-  "/connections": { title: "连接监控", sub: "实时连接表 · 域名 / 规则 / 速率" },
-  "/subscriptions": { title: "订阅管理", sub: "机场订阅、定时更新与流量" },
-  "/rules": { title: "规则与配置", sub: "分流规则 / 规则集 / 配置源码（统一管理）" },
-  "/settings": { title: "代理设置", sub: "端口 / 基础 / 性能 / DNS / TUN / 嗅探 / GEO 统一配置" },
-  "/dns": { title: "DNS 配置", sub: "fake-ip、加密上游与防泄漏" },
-  "/tun": { title: "透明代理", sub: "TUN 内核、路由与局域网排除" },
-  "/devices": { title: "设备策略", sub: "按源 IP 把设备定向到策略组 / 直连 / 拦截" },
-  "/kernels": { title: "核心管理", sub: "当前内核、可用内核与版本（多内核可插拔）" },
-  "/system": { title: "设置", sub: "主题 / 系统更新 / 系统优化 / 系统控制 / 诊断" },
-  "/logs": { title: "日志", sub: "Mihomo 内核日志 + 后端 daemon 日志（实时）" },
+const META: Record<string, { title: [string, string]; sub: [string, string] }> = {
+  "/": { title: ["仪表盘", "Dashboard"], sub: ["实时流量、节点与系统总览", "Real-time traffic, proxies & system overview"] },
+  "/proxies": { title: ["节点管理", "Proxies"], sub: ["策略组切换、节点延迟与测速", "Group switching, latency & speed test"] },
+  "/connections": { title: ["连接监控", "Connections"], sub: ["实时连接表 · 域名 / 规则 / 速率", "Live connections · host / rule / rate"] },
+  "/subscriptions": { title: ["订阅管理", "Subscriptions"], sub: ["机场订阅、定时更新与流量", "Airport subscriptions, auto-update & traffic"] },
+  "/rules": { title: ["规则与配置", "Rules & Config"], sub: ["分流规则 / 规则集 / 配置源码（统一管理）", "Rules / rule-sets / raw config (unified)"] },
+  "/settings": { title: ["代理设置", "Proxy Settings"], sub: ["端口 / 基础 / 性能 / DNS / TUN / 嗅探 / GEO 统一配置", "Ports / general / performance / DNS / TUN / sniffer / GEO"] },
+  "/dns": { title: ["DNS 配置", "DNS"], sub: ["fake-ip、加密上游与防泄漏", "fake-ip, encrypted upstream & anti-leak"] },
+  "/tun": { title: ["透明代理", "Transparent Proxy"], sub: ["TUN 内核、路由与局域网排除", "TUN stack, routing & LAN exclusions"] },
+  "/devices": { title: ["设备策略", "Device Policy"], sub: ["按源 IP 把设备定向到策略组 / 直连 / 拦截", "Route devices by source IP to group / direct / reject"] },
+  "/kernels": { title: ["核心管理", "Kernels"], sub: ["当前内核、可用内核与版本（多内核可插拔）", "Current & available kernels, versions (pluggable)"] },
+  "/system": { title: ["设置", "Settings"], sub: ["主题 / 系统更新 / 系统优化 / 系统控制 / 诊断", "Theme / update / tuning / control / diagnostics"] },
+  "/logs": { title: ["日志", "Logs"], sub: ["Mihomo 内核日志 + 后端 daemon 日志（实时）", "Mihomo kernel logs + backend daemon logs (live)"] },
 };
 
 function Shell({
@@ -58,7 +59,10 @@ function Shell({
   setMode: (m: Mode) => void;
 }) {
   const { pathname } = useLocation();
-  const meta = META[pathname] ?? { title: "M-BOX", sub: "" };
+  const { lang } = useI18n();
+  const i = lang === "en" ? 1 : 0;
+  const m = META[pathname];
+  const meta = m ? { title: m.title[i], sub: m.sub[i] } : { title: "M-BOX", sub: "" };
 
   return (
     <div className="app-shell">
@@ -108,7 +112,7 @@ export default function App() {
   }, [theme]);
 
   return (
-    <>
+    <I18nProvider>
       <div className="aurora" />
       <HashRouter>
         <SystemProvider>
@@ -122,6 +126,6 @@ export default function App() {
           </SubAlertsProvider>
         </SystemProvider>
       </HashRouter>
-    </>
+    </I18nProvider>
   );
 }

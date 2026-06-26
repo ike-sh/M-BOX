@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { Sun, Moon, Bell, FlaskConical, Power, RotateCw } from "lucide-react";
+import { Sun, Moon, Bell, FlaskConical, Power, RotateCw, Languages } from "lucide-react";
 import { Segmented } from "./ui";
 import { api, isMockMode } from "../lib/api";
 import { useSystem } from "../lib/system";
 import { useSubAlerts } from "../lib/subAlerts";
+import { useI18n } from "../lib/i18n";
 
 export type Mode = "rule" | "global" | "direct";
 
 /** 全局内核启停控件：任意页面都可见/可操作。状态读自共享的 SystemProvider。 */
 function CorePower() {
   const { system, refresh } = useSystem();
+  const { t } = useI18n();
   const [busy, setBusy] = useState(false);
 
   const status = system.core?.status ?? "unknown";
@@ -30,7 +32,7 @@ function CorePower() {
   }
 
   const dotColor = running ? "var(--green)" : status === "unknown" ? "var(--t4)" : "var(--red)";
-  const label = running ? "运行中" : status === "unknown" ? "未知" : "已停止";
+  const label = running ? t("运行中", "Running") : status === "unknown" ? t("未知", "Unknown") : t("已停止", "Stopped");
 
   return (
     <div
@@ -43,14 +45,14 @@ function CorePower() {
         border: "1px solid var(--hairline)",
         background: "var(--glass-bg, rgba(255,255,255,0.04))",
       }}
-      title={version ? `mihomo ${version}` : "mihomo 内核"}
+      title={version ? `mihomo ${version}` : t("mihomo 内核", "mihomo kernel")}
     >
       <span style={{ width: 8, height: 8, borderRadius: "50%", background: dotColor, boxShadow: running ? "0 0 8px var(--green)" : "none", flexShrink: 0 }} />
-      <span style={{ fontSize: 12, color: "var(--t2)", whiteSpace: "nowrap" }}>内核 · {label}</span>
+      <span style={{ fontSize: 12, color: "var(--t2)", whiteSpace: "nowrap" }}>{t("内核", "Kernel")} · {label}</span>
       <button
         className="icon-btn"
-        aria-label={running ? "停止内核" : "启动内核"}
-        title={running ? "停止内核" : "启动内核"}
+        aria-label={running ? t("停止内核", "Stop kernel") : t("启动内核", "Start kernel")}
+        title={running ? t("停止内核", "Stop kernel") : t("启动内核", "Start kernel")}
         disabled={busy}
         onClick={() => act(running ? "stop" : "start")}
         style={{ width: 30, height: 30, color: running ? "var(--red)" : "var(--green)" }}
@@ -59,8 +61,8 @@ function CorePower() {
       </button>
       <button
         className="icon-btn"
-        aria-label="重启内核"
-        title="重启内核"
+        aria-label={t("重启内核", "Restart kernel")}
+        title={t("重启内核", "Restart kernel")}
         disabled={busy}
         onClick={() => act("restart")}
         style={{ width: 30, height: 30 }}
@@ -87,6 +89,7 @@ export function TopBar({
   onMode: (m: Mode) => void;
 }) {
   const { warnings } = useSubAlerts();
+  const { t, lang, toggle } = useI18n();
   // 探测一次后端：若不可达则展示「演示数据」角标；同时加载当前运行模式。
   const [demo, setDemo] = useState(false);
   useEffect(() => {
@@ -117,9 +120,9 @@ export function TopBar({
 
       <div className="topbar-actions">
         {demo && (
-          <span className="demo-badge" title="未连接到 daemon，当前展示演示数据">
+          <span className="demo-badge" title={t("未连接到 daemon，当前展示演示数据", "Not connected to daemon, showing demo data")}>
             <FlaskConical size={13} />
-            演示数据
+            {t("演示数据", "Demo data")}
           </span>
         )}
         <CorePower />
@@ -127,20 +130,20 @@ export function TopBar({
           value={mode}
           onChange={changeMode}
           options={[
-            { value: "rule", label: "规则" },
-            { value: "global", label: "全局" },
-            { value: "direct", label: "直连" },
+            { value: "rule", label: t("规则", "Rule") },
+            { value: "global", label: t("全局", "Global") },
+            { value: "direct", label: t("直连", "Direct") },
           ]}
         />
         <NavLink
           to="/subscriptions"
           className="icon-btn"
           style={{ position: "relative" }}
-          aria-label="订阅提醒"
+          aria-label={t("订阅提醒", "Subscription alerts")}
           title={
             warnings.length
-              ? `订阅提醒：${warnings.map((w) => `${w.name} ${w.detail}`).join("；")}`
-              : "暂无订阅提醒"
+              ? `${t("订阅提醒", "Subscription alerts")}：${warnings.map((w) => `${w.name} ${w.detail}`).join("；")}`
+              : t("暂无订阅提醒", "No subscription alerts")
           }
         >
           <Bell size={18} />
@@ -167,7 +170,17 @@ export function TopBar({
             </span>
           )}
         </NavLink>
-        <button className="icon-btn" aria-label="切换主题" onClick={onToggleTheme}>
+        <button
+          className="icon-btn"
+          aria-label={t("切换语言", "Switch language")}
+          title={lang === "zh" ? "Switch to English" : "切换到中文"}
+          onClick={toggle}
+          style={{ width: 38, fontSize: 12, fontWeight: 700, gap: 4 }}
+        >
+          <Languages size={16} />
+          {lang === "zh" ? "EN" : "中"}
+        </button>
+        <button className="icon-btn" aria-label={t("切换主题", "Toggle theme")} onClick={onToggleTheme}>
           {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
