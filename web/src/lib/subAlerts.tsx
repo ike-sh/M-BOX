@@ -35,6 +35,9 @@ const Ctx = createContext<SubAlertsCtx>({ warnings: [], byId: {}, refresh: () =>
 
 /** 把订阅列表折算为风险列表。expire 形如 "2026-01-02"，"—" 表示未知。 */
 export function computeWarnings(subs: Subscription[]): SubWarning[] {
+  // 纯函数无法用 i18n hook，直接读 localStorage 里的语言（与 lib/i18n 一致）。
+  const en = (typeof localStorage !== "undefined" ? localStorage.getItem("mbox-lang") : "") === "en";
+  const tt = (zh: string, eng: string) => (en ? eng : zh);
   const out: SubWarning[] = [];
   const now = Date.now();
   for (const s of subs) {
@@ -47,7 +50,7 @@ export function computeWarnings(subs: Subscription[]): SubWarning[] {
           id: s.id,
           name: s.name,
           kind: "traffic",
-          detail: ratio >= 1 ? "流量已用尽" : `流量已用 ${Math.round(ratio * 100)}%`,
+          detail: ratio >= 1 ? tt("流量已用尽", "Quota exhausted") : `${tt("流量已用", "Used")} ${Math.round(ratio * 100)}%`,
         });
       }
     }
@@ -56,9 +59,9 @@ export function computeWarnings(subs: Subscription[]): SubWarning[] {
       const exp = new Date(`${s.expire}T23:59:59`).getTime();
       const days = Math.floor((exp - now) / 86_400_000);
       if (days < 0) {
-        out.push({ id: s.id, name: s.name, kind: "expire", detail: "已过期" });
+        out.push({ id: s.id, name: s.name, kind: "expire", detail: tt("已过期", "Expired") });
       } else if (days <= EXPIRE_DAYS) {
-        out.push({ id: s.id, name: s.name, kind: "expire", detail: days === 0 ? "今天到期" : `${days} 天后到期` });
+        out.push({ id: s.id, name: s.name, kind: "expire", detail: days === 0 ? tt("今天到期", "Expires today") : `${days} ${tt("天后到期", "days left")}` });
       }
     }
   }
