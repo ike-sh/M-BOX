@@ -3,6 +3,7 @@ import { Stethoscope, CheckCircle2, AlertTriangle, XCircle, RotateCw, Play, Circ
 import { GlassCard, CardHead } from "../components/ui";
 import { api } from "../lib/api";
 import { diagnostics as base } from "../mock/data";
+import { useI18n } from "../lib/i18n";
 import type { DiagItem } from "../types";
 
 const ICON: Record<DiagItem["status"], React.ReactNode> = {
@@ -14,6 +15,7 @@ const ICON: Record<DiagItem["status"], React.ReactNode> = {
 };
 
 export function Diagnostics() {
+  const { t } = useI18n();
   const [items, setItems] = useState<DiagItem[]>(() => base.map((d) => ({ ...d, status: "idle", detail: undefined })));
   const [running, setRunning] = useState(false);
 
@@ -27,7 +29,7 @@ export function Diagnostics() {
     } catch {
       // 体检请求失败时不要回退成「全部通过」的演示数据（会误导），统一标记为失败。
       setItems((prev) =>
-        prev.map((x) => ({ ...x, status: "fail", detail: "体检请求失败：内核未运行或服务不可达" }))
+        prev.map((x) => ({ ...x, status: "fail", detail: t("体检请求失败：内核未运行或服务不可达", "Diagnostics failed: kernel not running or service unreachable") }))
       );
     }
     setRunning(false);
@@ -47,23 +49,23 @@ export function Diagnostics() {
               <Stethoscope size={24} />
             </span>
             <div className="col">
-              <span style={{ fontSize: 17, fontWeight: 700 }}>系统体检</span>
+              <span style={{ fontSize: 17, fontWeight: 700 }}>{t("系统体检", "Diagnostics")}</span>
               <span className="muted" style={{ fontSize: 12.5 }}>
                 {done.length === 0
-                  ? "一键检查内核、TUN、转发、DNS、泄漏、连通性与 Geo 数据"
-                  : <>通过 <b className="up">{passed}</b> · 警告 <b style={{ color: "var(--orange)" }}>{warned}</b> · 失败 <b className="down">{failed}</b></>}
+                  ? t("一键检查内核、TUN、转发、DNS、泄漏、连通性与 Geo 数据", "One-click check: kernel, TUN, forwarding, DNS, leaks, connectivity & Geo data")
+                  : <>{t("通过", "Pass")} <b className="up">{passed}</b> · {t("警告", "Warn")} <b style={{ color: "var(--orange)" }}>{warned}</b> · {t("失败", "Fail")} <b className="down">{failed}</b></>}
               </span>
             </div>
           </div>
           <button className="btn btn-primary" onClick={run} disabled={running}>
             {running ? <RotateCw size={16} className="spin" /> : <Play size={16} />}
-            {running ? "检测中…" : "开始体检"}
+            {running ? t("检测中…", "Running…") : t("开始体检", "Run Diagnostics")}
           </button>
         </div>
       </GlassCard>
 
       <GlassCard>
-        <CardHead title="检测项" sub={`共 ${items.length} 项`} />
+        <CardHead title={t("检测项", "Checks")} sub={`${t("共", "")} ${items.length} ${t("项", "items")}`.trim()} />
         <div className="col gap-2">
           {items.map((it) => (
             <div

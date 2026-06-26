@@ -3,10 +3,12 @@ import { Palette, Cpu, Rocket, Power, RefreshCw, RotateCcw, CheckCircle2, Downlo
 import { GlassCard, CardHead, Switch, Segmented, Pill, ConfirmDialog } from "../components/ui";
 import { api } from "../lib/api";
 import { Diagnostics } from "./Diagnostics";
+import { useI18n } from "../lib/i18n";
 
 type Opt = { bbr: boolean; bbrAvailable: boolean; autostart: boolean; ipForward: boolean };
 
 export function Settings() {
+  const { t } = useI18n();
   const [theme, setTheme] = useState<string>(() => document.documentElement.getAttribute("data-theme") || "dark");
   const [ver, setVer] = useState<{ current: string; latest: string; hasUpdate: boolean }>({ current: "", latest: "", hasUpdate: false });
   const [checking, setChecking] = useState(false);
@@ -32,9 +34,9 @@ export function Settings() {
       const v = await api.getCoreLatest(force);
       setVer(v);
       if (force) {
-        if (!v.latest) flash("检查失败：拿不到最新版本（请检查网络/代理）", 4000);
-        else if (v.hasUpdate) flash(`发现新版本 ${v.latest}`, 4000);
-        else flash(`已是最新版本 ${v.current || v.latest}`, 3000);
+        if (!v.latest) flash(t("检查失败：拿不到最新版本（请检查网络/代理）", "Check failed: cannot fetch latest version (check network/proxy)"), 4000);
+        else if (v.hasUpdate) flash(`${t("发现新版本", "New version")} ${v.latest}`, 4000);
+        else flash(`${t("已是最新版本", "Up to date")} ${v.current || v.latest}`, 3000);
       }
     } finally {
       setChecking(false);
@@ -43,13 +45,13 @@ export function Settings() {
   async function doUpdate() {
     if (updating) return;
     setUpdating(true);
-    flash("正在下载并更新内核…可能需要约 1 分钟，期间代理短暂中断", 60000);
+    flash(t("正在下载并更新内核…可能需要约 1 分钟，期间代理短暂中断", "Downloading & updating kernel… may take ~1 min, proxy briefly interrupted"), 60000);
     try {
       const r = await api.coreUpdate();
-      flash(`内核已更新到 ${r.version || "最新版"} 并重启`, 4000);
+      flash(`${t("内核已更新到", "Kernel updated to")} ${r.version || t("最新版", "latest")} ${t("并重启", "& restarted")}`, 4000);
       setTimeout(() => checkUpdate(true), 1500);
     } catch (e) {
-      flash(e instanceof Error ? e.message : "更新失败", 5000);
+      flash(e instanceof Error ? e.message : t("更新失败", "Update failed"), 5000);
     } finally {
       setUpdating(false);
     }
@@ -59,9 +61,9 @@ export function Settings() {
     setBusy(key);
     try {
       setOpt(await api.applySystemOptimize(patch));
-      flash("已应用并生效");
+      flash(t("已应用并生效", "Applied"));
     } catch (e) {
-      flash(e instanceof Error ? e.message : "操作失败");
+      flash(e instanceof Error ? e.message : t("操作失败", "Operation failed"));
       api.getSystemOptimize().then(setOpt);
     } finally {
       setBusy("");
@@ -73,9 +75,9 @@ export function Settings() {
     if (!action) return;
     try {
       await api.systemControl(action);
-      flash(action === "restart" ? "服务重启中…几秒后刷新页面即可" : "服务已停止（需在主机端重新启动 mbox-daemon）", 6000);
+      flash(action === "restart" ? t("服务重启中…几秒后刷新页面即可", "Service restarting… refresh the page in a few seconds") : t("服务已停止（需在主机端重新启动 mbox-daemon）", "Service stopped (restart mbox-daemon on the host)"), 6000);
     } catch (e) {
-      flash(e instanceof Error ? e.message : "操作失败");
+      flash(e instanceof Error ? e.message : t("操作失败", "Operation failed"));
     }
   }
   function flash(t: string, ms = 2000) {
@@ -91,53 +93,53 @@ export function Settings() {
 
       <div className="grid cols-2">
         <GlassCard>
-          <CardHead icon={<Palette size={18} color="var(--purple)" />} title="主题风格" sub="界面亮 / 暗外观（本地保存）" />
-          <Segmented value={theme} onChange={applyTheme} options={[{ value: "dark", label: "暗色" }, { value: "light", label: "亮色" }]} />
+          <CardHead icon={<Palette size={18} color="var(--purple)" />} title={t("主题风格", "Theme")} sub={t("界面亮 / 暗外观（本地保存）", "Light / dark appearance (saved locally)")} />
+          <Segmented value={theme} onChange={applyTheme} options={[{ value: "dark", label: t("暗色", "Dark") }, { value: "light", label: t("亮色", "Light") }]} />
         </GlassCard>
 
         <GlassCard>
           <CardHead
             icon={<Cpu size={18} color="var(--blue)" />}
-            title="内核更新"
-            sub="mihomo 内核版本检查与在线更新"
+            title={t("内核更新", "Kernel Update")}
+            sub={t("mihomo 内核版本检查与在线更新", "Check & update mihomo kernel online")}
             right={
               <div className="row gap-2">
-                <button className="btn btn-ghost btn-sm" onClick={() => checkUpdate(true)} disabled={checking || updating}><RefreshCw size={14} className={checking ? "spin" : ""} /> 检查</button>
-                <button className={`btn btn-sm ${ver.hasUpdate ? "btn-primary" : "btn-ghost"}`} onClick={doUpdate} disabled={updating || checking} title="下载最新 mihomo 内核并重启生效">
-                  <Download size={14} className={updating ? "spin" : ""} /> {updating ? "更新中…" : "更新内核"}
+                <button className="btn btn-ghost btn-sm" onClick={() => checkUpdate(true)} disabled={checking || updating}><RefreshCw size={14} className={checking ? "spin" : ""} /> {t("检查", "Check")}</button>
+                <button className={`btn btn-sm ${ver.hasUpdate ? "btn-primary" : "btn-ghost"}`} onClick={doUpdate} disabled={updating || checking} title={t("下载最新 mihomo 内核并重启生效", "Download latest mihomo kernel and restart")}>
+                  <Download size={14} className={updating ? "spin" : ""} /> {updating ? t("更新中…", "Updating…") : t("更新内核", "Update")}
                 </button>
               </div>
             }
           />
           <div className="col">
-            <Row label="当前内核版本"><span className="mono v">{ver.current || "—"}</span></Row>
-            <Row label="最新版本"><span className="mono v">{ver.latest || "—"}</span></Row>
-            <Row label="状态">
+            <Row label={t("当前内核版本", "Current version")}><span className="mono v">{ver.current || "—"}</span></Row>
+            <Row label={t("最新版本", "Latest version")}><span className="mono v">{ver.latest || "—"}</span></Row>
+            <Row label={t("状态", "Status")}>
               {ver.hasUpdate
-                ? <Pill tone="orange" dot>有新版本可用</Pill>
-                : <span className="row" style={{ gap: 6, color: "var(--green)", fontSize: 12.5 }}><CheckCircle2 size={14} /> 已是最新</span>}
+                ? <Pill tone="orange" dot>{t("有新版本可用", "Update available")}</Pill>
+                : <span className="row" style={{ gap: 6, color: "var(--green)", fontSize: 12.5 }}><CheckCircle2 size={14} /> {t("已是最新", "Up to date")}</span>}
             </Row>
-            {ver.hasUpdate && <span className="muted-2" style={{ fontSize: 11.5 }}>点击右上角「更新内核」即可下载最新版并自动重启生效（期间代理短暂中断）。</span>}
+            {ver.hasUpdate && <span className="muted-2" style={{ fontSize: 11.5 }}>{t("点击右上角「更新内核」即可下载最新版并自动重启生效（期间代理短暂中断）。", "Click \u201cUpdate\u201d above to download the latest and auto-restart (proxy briefly interrupted).")}</span>}
           </div>
         </GlassCard>
 
         <GlassCard>
-          <CardHead icon={<Rocket size={18} color="var(--green)" />} title="系统优化" sub="网络性能与开机自启（需 root，仅 Linux 生效）" />
+          <CardHead icon={<Rocket size={18} color="var(--green)" />} title={t("系统优化", "System Tuning")} sub={t("网络性能与开机自启（需 root，仅 Linux 生效）", "Network performance & autostart (root, Linux only)")} />
           {!opt ? (
-            <span className="muted-2" style={{ fontSize: 13 }}>加载中…</span>
+            <span className="muted-2" style={{ fontSize: 13 }}>{t("加载中…", "Loading…")}</span>
           ) : (
             <div className="col">
-              <Row label="BBR 拥塞控制" desc={opt.bbrAvailable ? "Google BBR，高带宽高延迟下提升吞吐" : "当前内核未提供 BBR（主机 modprobe tcp_bbr 后可用）"}>
+              <Row label={t("BBR 拥塞控制", "BBR congestion control")} desc={opt.bbrAvailable ? t("Google BBR，高带宽高延迟下提升吞吐", "Google BBR, boosts throughput on high BDP links") : t("当前内核未提供 BBR（主机 modprobe tcp_bbr 后可用）", "Kernel lacks BBR (run modprobe tcp_bbr on host)")}>
                 {busy === "bbr"
                   ? <RefreshCw size={15} className="spin" />
                   : opt.bbrAvailable
                     ? <Switch on={opt.bbr} onChange={(v) => setOptField({ bbr: v }, "bbr")} />
-                    : <Pill tone="gray">不可用</Pill>}
+                    : <Pill tone="gray">{t("不可用", "N/A")}</Pill>}
               </Row>
-              <Row label="开机自动启动" desc="systemd 开机拉起 mbox-daemon">
+              <Row label={t("开机自动启动", "Start on boot")} desc={t("systemd 开机拉起 mbox-daemon", "systemd starts mbox-daemon on boot")}>
                 {busy === "autostart" ? <RefreshCw size={15} className="spin" /> : <Switch on={opt.autostart} onChange={(v) => setOptField({ autostart: v }, "autostart")} />}
               </Row>
-              <Row label="IP 转发" desc="旁路由转发必需（ip_forward）">
+              <Row label={t("IP 转发", "IP forwarding")} desc={t("旁路由转发必需（ip_forward）", "Required for side-router forwarding (ip_forward)")}>
                 {busy === "ipForward" ? <RefreshCw size={15} className="spin" /> : <Switch on={opt.ipForward} onChange={(v) => setOptField({ ipForward: v }, "ipForward")} />}
               </Row>
             </div>
@@ -145,14 +147,14 @@ export function Settings() {
         </GlassCard>
 
         <GlassCard>
-          <CardHead icon={<Power size={18} color="var(--orange)" />} title="系统控制" sub="重启 / 停止 M-BOX 服务" />
+          <CardHead icon={<Power size={18} color="var(--orange)" />} title={t("系统控制", "System Control")} sub={t("重启 / 停止 M-BOX 服务", "Restart / stop the M-BOX service")} />
           <div className="col gap-2">
             <div className="row" style={{ gap: 8, padding: "10px 12px", borderRadius: "var(--r-sm)", background: "var(--fill-2)", border: "1px solid var(--orange)", color: "var(--orange)", fontSize: 12 }}>
-              ⚠️ 重启会短暂中断代理；停止后面板将失联，需在主机端重新启动。
+              ⚠️ {t("重启会短暂中断代理；停止后面板将失联，需在主机端重新启动。", "Restart briefly interrupts the proxy; after stop the panel disconnects and must be restarted on the host.")}
             </div>
             <div className="row gap-2">
-              <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setCtrl("restart")}><RotateCcw size={15} /> 重启服务</button>
-              <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", color: "var(--red)" }} onClick={() => setCtrl("stop")}><Power size={15} /> 停止服务</button>
+              <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setCtrl("restart")}><RotateCcw size={15} /> {t("重启服务", "Restart")}</button>
+              <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", color: "var(--red)" }} onClick={() => setCtrl("stop")}><Power size={15} /> {t("停止服务", "Stop")}</button>
             </div>
           </div>
         </GlassCard>
@@ -162,12 +164,12 @@ export function Settings() {
 
       {ctrl && (
         <ConfirmDialog
-          title={ctrl === "restart" ? "重启 M-BOX 服务？" : "停止 M-BOX 服务？"}
+          title={ctrl === "restart" ? t("重启 M-BOX 服务？", "Restart M-BOX service?") : t("停止 M-BOX 服务？", "Stop M-BOX service?")}
           danger={ctrl === "stop"}
-          confirmText={ctrl === "restart" ? "重启" : "停止"}
+          confirmText={ctrl === "restart" ? t("重启", "Restart") : t("停止", "Stop")}
           message={ctrl === "restart"
-            ? <>将重启 mbox-daemon：代理会短暂中断，面板需几秒后刷新重连。确定继续？</>
-            : <><b>停止后面板将失联</b>，且代理停止；需要 SSH 到主机执行 <span className="mono">systemctl start mbox-daemon</span> 才能恢复。确定停止？</>}
+            ? <>{t("将重启 mbox-daemon：代理会短暂中断，面板需几秒后刷新重连。确定继续？", "This restarts mbox-daemon: the proxy briefly drops and the panel reconnects after a few seconds. Continue?")}</>
+            : <><b>{t("停止后面板将失联", "The panel will disconnect after stopping")}</b>{t("，且代理停止；需要 SSH 到主机执行 ", ", and the proxy stops; SSH to the host and run ")}<span className="mono">systemctl start mbox-daemon</span>{t(" 才能恢复。确定停止？", " to recover. Stop?")}</>}
           onConfirm={doControl}
           onCancel={() => setCtrl("")}
         />
