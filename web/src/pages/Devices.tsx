@@ -3,12 +3,14 @@ import { MonitorSmartphone, Plus, Trash2, Router, Activity } from "lucide-react"
 import { GlassCard, CardHead, Switch, Pill, Select } from "../components/ui";
 import { api } from "../lib/api";
 import { speed, bytes } from "../lib/format";
+import { useI18n } from "../lib/i18n";
 import type { DevicePolicy, DeviceLive } from "../types";
 
 // 内置目标选项：直连 / 拦截 + 运行时从策略组补充。
 const BASE_TARGETS = ["DIRECT", "REJECT"];
 
 export function Devices() {
+  const { t } = useI18n();
   const [devices, setDevices] = useState<DevicePolicy[]>([]);
   const [groups, setGroups] = useState<string[]>([]);
   const [live, setLive] = useState<DeviceLive[]>([]);
@@ -91,14 +93,14 @@ export function Devices() {
       <GlassCard>
         <CardHead
           icon={<Router size={18} color="var(--blue)" />}
-          title="按设备分流"
-          sub="按源 IP / 网段把指定设备定向到策略组、直连或拦截 · 优先级最高"
+          title={t("按设备分流", "Per-device Routing")}
+          sub={t("按源 IP / 网段把指定设备定向到策略组、直连或拦截 · 优先级最高", "Route devices by source IP/CIDR to a group, direct or reject · highest priority")}
         />
         <div className="row wrap gap-2" style={{ alignItems: "flex-end" }}>
-          <Field label="备注名">
+          <Field label={t("备注名", "Name")}>
             <input
               className="input"
-              placeholder="如 客厅电视"
+              placeholder={t("如 客厅电视", "e.g. Living Room TV")}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
@@ -106,13 +108,13 @@ export function Devices() {
           <Field label="IP / CIDR">
             <input
               className="input mono"
-              placeholder="192.168.1.50 或 192.168.1.0/24"
+              placeholder={t("192.168.1.50 或 192.168.1.0/24", "192.168.1.50 or 192.168.1.0/24")}
               value={form.ip}
               onChange={(e) => setForm({ ...form, ip: e.target.value })}
               onKeyDown={(e) => e.key === "Enter" && add()}
             />
           </Field>
-          <Field label="目标策略">
+          <Field label={t("目标策略", "Target")}>
             <Select
               value={form.target}
               onChange={(v) => setForm({ ...form, target: v })}
@@ -120,15 +122,15 @@ export function Devices() {
             />
           </Field>
           <button className="btn btn-primary" onClick={add} disabled={busy} style={{ gap: 6 }}>
-            <Plus size={15} /> 添加
+            <Plus size={15} /> {t("添加", "Add")}
           </button>
         </div>
       </GlassCard>
 
       <GlassCard>
-        <CardHead icon={<MonitorSmartphone size={18} color="var(--purple)" />} title="设备列表" sub={`${devices.length} 台设备`} />
+        <CardHead icon={<MonitorSmartphone size={18} color="var(--purple)" />} title={t("设备列表", "Devices")} sub={`${devices.length} ${t("台设备", "devices")}`} />
         <div className="col gap-2">
-          {devices.length === 0 && <span className="muted-2" style={{ fontSize: 13 }}>暂无设备策略，添加后将以 SRC-IP-CIDR 规则置顶生效。</span>}
+          {devices.length === 0 && <span className="muted-2" style={{ fontSize: 13 }}>{t("暂无设备策略，添加后将以 SRC-IP-CIDR 规则置顶生效。", "No device policy yet. Added entries take effect as top-priority SRC-IP-CIDR rules.")}</span>}
           {devices.map((d) => (
             <div
               key={d.id}
@@ -151,7 +153,7 @@ export function Devices() {
                     options={(targets.includes(d.target) ? targets : [d.target, ...targets]).map((t) => ({ value: t, label: t }))}
                   />
                 </div>
-                <button className="btn btn-ghost btn-sm" onClick={() => remove(d)} title="删除">
+                <button className="btn btn-ghost btn-sm" onClick={() => remove(d)} title={t("删除", "Delete")}>
                   <Trash2 size={14} />
                 </button>
               </div>
@@ -163,21 +165,21 @@ export function Devices() {
       <GlassCard>
         <CardHead
           icon={<Activity size={18} color="var(--green)" />}
-          title="在线设备 · 实时"
-          sub="按源 IP 聚合的活动连接与实时上下行（每 3 秒刷新）"
-          right={<span className="row" style={{ gap: 6, fontSize: 12, color: "var(--t2)" }}><span className="live-dot" /> 实时</span>}
+          title={t("在线设备 · 实时", "Online Devices · Live")}
+          sub={t("按源 IP 聚合的活动连接与实时上下行（每 3 秒刷新）", "Active connections aggregated by source IP (refresh every 3s)")}
+          right={<span className="row" style={{ gap: 6, fontSize: 12, color: "var(--t2)" }}><span className="live-dot" /> {t("实时", "Live")}</span>}
         />
         {live.length === 0 ? (
-          <span className="muted-2" style={{ fontSize: 13 }}>暂无在线设备流量（需内核运行且有经过网关的活动连接）。</span>
+          <span className="muted-2" style={{ fontSize: 13 }}>{t("暂无在线设备流量（需内核运行且有经过网关的活动连接）。", "No online device traffic (needs the kernel running and active connections through the gateway).")}</span>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>设备</th>
-                <th style={{ textAlign: "right" }}>连接数</th>
-                <th style={{ textAlign: "right" }}>下载速率</th>
-                <th style={{ textAlign: "right" }}>上传速率</th>
-                <th style={{ textAlign: "right" }}>累计下载</th>
+                <th>{t("设备", "Device")}</th>
+                <th style={{ textAlign: "right" }}>{t("连接数", "Conns")}</th>
+                <th style={{ textAlign: "right" }}>{t("下载速率", "Down Rate")}</th>
+                <th style={{ textAlign: "right" }}>{t("上传速率", "Up Rate")}</th>
+                <th style={{ textAlign: "right" }}>{t("累计下载", "Total Down")}</th>
               </tr>
             </thead>
             <tbody>
@@ -215,3 +217,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+

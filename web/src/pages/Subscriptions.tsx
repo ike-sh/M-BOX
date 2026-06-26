@@ -4,18 +4,20 @@ import { GlassCard, CardHead, Switch, Pill, Modal, FormField, Select, ConfirmDia
 import { api } from "../lib/api";
 import { pct } from "../lib/format";
 import { useSubAlerts } from "../lib/subAlerts";
+import { useI18n } from "../lib/i18n";
 import type { Subscription } from "../types";
 
 const INTERVAL_OPTIONS = [
-  { value: "6", label: "每 6 小时" },
-  { value: "12", label: "每 12 小时" },
-  { value: "24", label: "每 24 小时（推荐）" },
-  { value: "48", label: "每 48 小时" },
-  { value: "72", label: "每 72 小时" },
-  { value: "168", label: "每 7 天" },
+  { value: "6", label: "每 6 小时", en: "Every 6h" },
+  { value: "12", label: "每 12 小时", en: "Every 12h" },
+  { value: "24", label: "每 24 小时（推荐）", en: "Every 24h (recommended)" },
+  { value: "48", label: "每 48 小时", en: "Every 48h" },
+  { value: "72", label: "每 72 小时", en: "Every 72h" },
+  { value: "168", label: "每 7 天", en: "Every 7 days" },
 ];
 
 export function Subscriptions() {
+  const { t, lang } = useI18n();
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [updating, setUpdating] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export function Subscriptions() {
     } catch (e) {
       // 失败回滚并提示。
       setSubs((list) => list.map((x) => (x.id === s.id ? { ...x, enabled: !next } : x)));
-      setNotice(`「${s.name}」${next ? "启用" : "停用"}失败：${e instanceof Error ? e.message : "请稍后重试"}`);
+      setNotice(`「${s.name}」${next ? t("启用", "enable") : t("停用", "disable")}${t("失败：", " failed: ")}${e instanceof Error ? e.message : t("请稍后重试", "please retry later")}`);
     } finally {
       setToggling(null);
     }
@@ -79,10 +81,10 @@ export function Subscriptions() {
     const isEdit = formMode === "edit";
     const name = form.name.trim();
     const url = form.url.trim();
-    if (!name) { setAddError("请填写订阅名称"); return; }
+    if (!name) { setAddError(t("请填写订阅名称", "Please enter a subscription name")); return; }
     // 新增必须填链接；编辑可留空（沿用原链接）。
-    if (!isEdit && !url) { setAddError("请填写订阅链接"); return; }
-    if (url && !/^https?:\/\//i.test(url)) { setAddError("订阅链接需以 http:// 或 https:// 开头"); return; }
+    if (!isEdit && !url) { setAddError(t("请填写订阅链接", "Please enter a subscription URL")); return; }
+    if (url && !/^https?:\/\//i.test(url)) { setAddError(t("订阅链接需以 http:// 或 https:// 开头", "URL must start with http:// or https://")); return; }
     setSaving(true);
     setAddError(null);
     try {
@@ -90,7 +92,7 @@ export function Subscriptions() {
       setFormOpen(false);
       reload();
     } catch (e) {
-      setAddError(e instanceof Error ? e.message : (isEdit ? "保存失败，请检查链接或网络" : "添加失败，请检查链接或网络"));
+      setAddError(e instanceof Error ? e.message : (isEdit ? t("保存失败，请检查链接或网络", "Save failed, check the URL or network") : t("添加失败，请检查链接或网络", "Add failed, check the URL or network")));
     } finally {
       setSaving(false);
     }
@@ -138,15 +140,15 @@ export function Subscriptions() {
                 right={
                   <div className="row gap-2">
                     <Switch on={s.enabled} onChange={() => toggle(s)} />
-                    <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => openEdit(s)} aria-label="编辑订阅" title="编辑订阅"><Pencil size={15} /></button>
-                    <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setDelTarget(s)} aria-label="删除订阅" title="删除订阅"><Trash2 size={16} /></button>
+                    <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => openEdit(s)} aria-label={t("编辑订阅", "Edit subscription")} title={t("编辑订阅", "Edit subscription")}><Pencil size={15} /></button>
+                    <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={() => setDelTarget(s)} aria-label={t("删除订阅", "Delete subscription")} title={t("删除订阅", "Delete subscription")}><Trash2 size={16} /></button>
                   </div>
                 }
               />
 
               <div className="col" style={{ gap: 8, marginBottom: 16 }}>
                 <div className="row between">
-                  <span style={{ fontSize: 12.5, color: "var(--t2)" }}>流量</span>
+                  <span style={{ fontSize: 12.5, color: "var(--t2)" }}>{t("流量", "Traffic")}</span>
                   <span className="mono" style={{ fontSize: 12.5 }}>
                     <b>{s.used} GB</b> <span className="muted-2">/ {s.total} GB</span>
                   </span>
@@ -169,18 +171,18 @@ export function Subscriptions() {
               )}
 
               <div className="grid cols-3" style={{ gap: 10 }}>
-                <Field icon={<Server size={14} />} label="节点" value={`${s.nodeCount}`} />
-                <Field icon={<Calendar size={14} />} label="到期" value={s.expire} />
-                <Field icon={<Clock size={14} />} label="自动更新" value={`${s.interval}h`} />
+                <Field icon={<Server size={14} />} label={t("节点", "Nodes")} value={`${s.nodeCount}`} />
+                <Field icon={<Calendar size={14} />} label={t("到期", "Expires")} value={s.expire} />
+                <Field icon={<Clock size={14} />} label={t("自动更新", "Auto-update")} value={`${s.interval}h`} />
               </div>
 
               <div className="row between" style={{ marginTop: 18 }}>
                 <span className="row" style={{ gap: 8 }}>
-                  <Pill tone="gray">更新于 {s.updatedAt}</Pill>
+                  <Pill tone="gray">{t("更新于", "Updated")} {s.updatedAt}</Pill>
                 </span>
                 <button className="btn btn-ghost btn-sm" onClick={() => update(s)} disabled={updating === s.id}>
                   <RefreshCw size={14} className={updating === s.id ? "spin" : ""} />
-                  {updating === s.id ? "更新中" : "立即更新"}
+                  {updating === s.id ? t("更新中", "Updating") : t("立即更新", "Update now")}
                 </button>
               </div>
             </GlassCard>
@@ -206,32 +208,32 @@ export function Subscriptions() {
           <span className="stat-ico" style={{ width: 48, height: 48, background: "var(--fill-1)", color: "var(--t1)" }}>
             <Plus size={24} />
           </span>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>添加订阅</span>
-          <span style={{ fontSize: 12 }}>支持 Clash / mihomo / Base64 / V2Ray 链接</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--t1)" }}>{t("添加订阅", "Add Subscription")}</span>
+          <span style={{ fontSize: 12 }}>{t("支持 Clash / mihomo / Base64 / V2Ray 链接", "Clash / mihomo / Base64 / V2Ray links supported")}</span>
         </button>
       </div>
 
       {formOpen && (
         <Modal
-          title={formMode === "edit" ? "编辑订阅" : "添加订阅"}
-          sub="支持 Clash / mihomo / Base64 / V2Ray 订阅链接"
+          title={formMode === "edit" ? t("编辑订阅", "Edit Subscription") : t("添加订阅", "Add Subscription")}
+          sub={t("支持 Clash / mihomo / Base64 / V2Ray 订阅链接", "Clash / mihomo / Base64 / V2Ray links supported")}
           width={460}
           onClose={() => !saving && setFormOpen(false)}
           icon={<span className="stat-ico" style={{ width: 36, height: 36, background: "linear-gradient(135deg,#0a84ff,#5e5ce6)" }}><Rss size={17} /></span>}
           footer={
             <>
-              <button className="btn btn-ghost" onClick={() => setFormOpen(false)} disabled={saving}>取消</button>
+              <button className="btn btn-ghost" onClick={() => setFormOpen(false)} disabled={saving}>{t("取消", "Cancel")}</button>
               <button className="btn btn-primary" onClick={submitForm} disabled={saving} style={{ gap: 8 }}>
                 {saving ? <RefreshCw size={15} className="spin" /> : <Plus size={15} />}
-                {saving ? "保存中…" : formMode === "edit" ? "保存修改" : "添加订阅"}
+                {saving ? t("保存中…", "Saving…") : formMode === "edit" ? t("保存修改", "Save") : t("添加订阅", "Add")}
               </button>
             </>
           }
         >
-          <FormField label="订阅名称" hint={formMode === "edit" ? "名称作为唯一标识，编辑时不可修改" : undefined}>
+          <FormField label={t("订阅名称", "Name")} hint={formMode === "edit" ? t("名称作为唯一标识，编辑时不可修改", "Name is the unique key and cannot be changed when editing") : undefined}>
             <input
               className="input"
-              placeholder="例如：机场A"
+              placeholder={t("例如：机场A", "e.g. Provider A")}
               value={form.name}
               autoFocus={formMode === "add"}
               disabled={formMode === "edit"}
@@ -240,23 +242,23 @@ export function Subscriptions() {
             />
           </FormField>
           <FormField
-            label="订阅链接"
-            hint={formMode === "edit" ? "为安全已隐藏原链接；留空则沿用原链接，仅修改更新间隔" : "Clash/mihomo 订阅地址，或 Base64/V2Ray 订阅链接"}
+            label={t("订阅链接", "URL")}
+            hint={formMode === "edit" ? t("为安全已隐藏原链接；留空则沿用原链接，仅修改更新间隔", "Original URL hidden for safety; leave blank to keep it and only change the interval") : t("Clash/mihomo 订阅地址，或 Base64/V2Ray 订阅链接", "Clash/mihomo subscription URL, or Base64/V2Ray link")}
           >
             <input
               className="input"
               style={{ fontFamily: "var(--font-mono)", fontSize: 12.5 }}
-              placeholder={formMode === "edit" ? "留空不改；如需更换请粘贴新链接" : "https://example.com/api/v1/subscribe?token=..."}
+              placeholder={formMode === "edit" ? t("留空不改；如需更换请粘贴新链接", "Leave blank to keep; paste a new URL to replace") : "https://example.com/api/v1/subscribe?token=..."}
               value={form.url}
               autoFocus={formMode === "edit"}
               onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
               onKeyDown={(e) => e.key === "Enter" && submitForm()}
             />
           </FormField>
-          <FormField label="自动更新间隔">
+          <FormField label={t("自动更新间隔", "Auto-update interval")}>
             <Select
               value={form.interval}
-              options={INTERVAL_OPTIONS}
+              options={INTERVAL_OPTIONS.map((o) => ({ value: o.value, label: lang === "en" ? o.en : o.label }))}
               onChange={(v) => setForm((f) => ({ ...f, interval: v }))}
             />
           </FormField>
@@ -270,11 +272,11 @@ export function Subscriptions() {
 
       {delTarget && (
         <ConfirmDialog
-          title="删除订阅"
+          title={t("删除订阅", "Delete Subscription")}
           danger
           busy={deleting}
-          confirmText={deleting ? "删除中…" : "删除"}
-          message={<>确定删除订阅「<b style={{ color: "var(--t1)" }}>{delTarget.name}</b>」？此操作不可撤销。</>}
+          confirmText={deleting ? t("删除中…", "Deleting…") : t("删除", "Delete")}
+          message={<>{t("确定删除订阅「", "Delete subscription \u201c")}<b style={{ color: "var(--t1)" }}>{delTarget.name}</b>{t("」？此操作不可撤销。", "\u201d? This cannot be undone.")}</>}
           onConfirm={confirmRemove}
           onCancel={() => !deleting && setDelTarget(null)}
         />
