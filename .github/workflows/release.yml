@@ -1,0 +1,33 @@
+name: Release
+
+# 打 tag（vX.Y.Z）即自动交叉编译双架构离线整包并发布到 GitHub Release。
+on:
+  push:
+    tags: [ 'v*' ]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish offline packages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - name: Build offline packages (amd64 + arm64)
+        run: bash scripts/build-package.sh
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-pkg/*.tar.gz
+          generate_release_notes: true
+          fail_on_unmatched_files: true
