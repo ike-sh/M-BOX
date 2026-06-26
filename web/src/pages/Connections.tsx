@@ -3,6 +3,7 @@ import { Search, X, Pause, Play } from "lucide-react";
 import { GlassCard, CardHead, Pill, Segmented } from "../components/ui";
 import { api } from "../lib/api";
 import { bytes, speed, relTime } from "../lib/format";
+import { useI18n } from "../lib/i18n";
 import type { Connection } from "../types";
 
 type ConnView = "detail" | "process" | "host";
@@ -27,6 +28,7 @@ function aggregate(conns: Connection[], by: "process" | "host"): ConnAgg[] {
 }
 
 export function Connections() {
+  const { t } = useI18n();
   const [conns, setConns] = useState<Connection[]>([]);
   const [q, setQ] = useState("");
   const [paused, setPaused] = useState(false);
@@ -63,7 +65,7 @@ export function Connections() {
       <GlassCard>
         <div className="row between wrap" style={{ gap: 12 }}>
           <div className="row gap-4 wrap">
-            <SummaryChip label="活动连接" value={String(filtered.length)} />
+            <SummaryChip label={t("活动连接", "Active Conns")} value={String(filtered.length)} />
           </div>
           <div className="row gap-2">
             <div className="row" style={{ background: "var(--fill-2)", border: "1px solid var(--hairline)", borderRadius: "var(--r-sm)", padding: "0 12px", height: 38 }}>
@@ -71,12 +73,12 @@ export function Connections() {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="搜索域名 / IP / 规则"
+                placeholder={t("搜索域名 / IP / 规则", "Search host / IP / rule")}
                 style={{ background: "transparent", border: "none", outline: "none", color: "var(--t1)", fontSize: 13, width: 200, marginLeft: 8, fontFamily: "inherit" }}
               />
               {q && <X size={15} color="var(--t3)" style={{ cursor: "pointer" }} onClick={() => setQ("")} />}
             </div>
-            <button className="icon-btn" onClick={() => setPaused((p) => !p)} aria-label="暂停刷新" title={paused ? "继续" : "暂停"}>
+            <button className="icon-btn" onClick={() => setPaused((p) => !p)} aria-label={t("暂停刷新", "Pause refresh")} title={paused ? t("继续", "Resume") : t("暂停", "Pause")}>
               {paused ? <Play size={17} /> : <Pause size={17} />}
             </button>
           </div>
@@ -85,21 +87,21 @@ export function Connections() {
 
       <GlassCard style={{ padding: "var(--sp-4) var(--sp-5)" }}>
         <CardHead
-          title="实时连接"
+          title={t("实时连接", "Live Connections")}
           right={
             <div className="row gap-4" style={{ alignItems: "center" }}>
               <Segmented
                 value={view}
                 onChange={(v) => setView(v as ConnView)}
                 options={[
-                  { value: "detail", label: "明细" },
-                  { value: "process", label: "按进程" },
-                  { value: "host", label: "按域名" },
+                  { value: "detail", label: t("明细", "Detail") },
+                  { value: "process", label: t("按进程", "By process") },
+                  { value: "host", label: t("按域名", "By host") },
                 ]}
               />
               <span className="row" style={{ gap: 6, fontSize: 12, color: "var(--t2)" }}>
                 {!paused && <span className="live-dot" />}
-                {paused ? "已暂停" : "每 2 秒刷新"}
+                {paused ? t("已暂停", "Paused") : t("每 2 秒刷新", "Refreshing every 2s")}
               </span>
             </div>
           }
@@ -109,11 +111,11 @@ export function Connections() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>{view === "process" ? "进程" : "目标域名"}</th>
-                  <th style={{ textAlign: "right" }}>连接数</th>
-                  <th style={{ textAlign: "right" }}>↓ 速率</th>
-                  <th style={{ textAlign: "right" }}>↑ 速率</th>
-                  <th style={{ textAlign: "right" }}>总流量</th>
+                  <th>{view === "process" ? t("进程", "Process") : t("目标域名", "Host")}</th>
+                  <th style={{ textAlign: "right" }}>{t("连接数", "Conns")}</th>
+                  <th style={{ textAlign: "right" }}>↓ {t("速率", "Rate")}</th>
+                  <th style={{ textAlign: "right" }}>↑ {t("速率", "Rate")}</th>
+                  <th style={{ textAlign: "right" }}>{t("总流量", "Total")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +135,7 @@ export function Connections() {
               </tbody>
             </table>
             {agg.length === 0 && (
-              <div className="empty"><Search size={28} /><p>没有匹配的连接</p></div>
+              <div className="empty"><Search size={28} /><p>{t("没有匹配的连接", "No matching connections")}</p></div>
             )}
           </div>
         ) : (
@@ -141,14 +143,14 @@ export function Connections() {
           <table className="table">
             <thead>
               <tr>
-                <th>目标主机</th>
-                <th>规则</th>
-                <th>代理链路</th>
-                <th>进程</th>
-                <th style={{ textAlign: "right" }}>↓ 速率</th>
-                <th style={{ textAlign: "right" }}>↑ 速率</th>
-                <th style={{ textAlign: "right" }}>总流量</th>
-                <th style={{ textAlign: "right" }}>时长</th>
+                <th>{t("目标主机", "Host")}</th>
+                <th>{t("规则", "Rule")}</th>
+                <th>{t("代理链路", "Chain")}</th>
+                <th>{t("进程", "Process")}</th>
+                <th style={{ textAlign: "right" }}>↓ {t("速率", "Rate")}</th>
+                <th style={{ textAlign: "right" }}>↑ {t("速率", "Rate")}</th>
+                <th style={{ textAlign: "right" }}>{t("总流量", "Total")}</th>
+                <th style={{ textAlign: "right" }}>{t("时长", "Duration")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -184,7 +186,7 @@ export function Connections() {
                     <td style={{ textAlign: "right" }} className="mono">{bytes(c.download + c.upload)}</td>
                     <td style={{ textAlign: "right" }} className="mono muted-2">{relTime(c.start)}</td>
                     <td style={{ textAlign: "right" }}>
-                      <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => kill(c.id)} aria-label="断开" title="断开连接">
+                      <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => kill(c.id)} aria-label={t("断开", "Close")} title={t("断开连接", "Close connection")}>
                         <X size={14} />
                       </button>
                     </td>
@@ -196,7 +198,7 @@ export function Connections() {
           {filtered.length === 0 && (
             <div className="empty">
               <Search size={28} />
-              <p>没有匹配的连接</p>
+              <p>{t("没有匹配的连接", "No matching connections")}</p>
             </div>
           )}
         </div>

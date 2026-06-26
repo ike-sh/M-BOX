@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { ChevronDown, Check, X, AlertTriangle } from "lucide-react";
+import { useI18n } from "../lib/i18n";
 
 export interface SelectOption {
   value: string;
@@ -14,13 +15,14 @@ export function Select({
   value,
   options,
   onChange,
-  placeholder = "请选择",
+  placeholder,
 }: {
   value: string;
   options: SelectOption[];
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -42,7 +44,7 @@ export function Select({
   return (
     <div className="cselect" ref={ref}>
       <button type="button" className="cselect-trigger" onClick={() => setOpen((o) => !o)}>
-        <span className={cur && cur.label ? "" : "muted-2"}>{cur ? cur.label || "（无）" : placeholder}</span>
+        <span className={cur && cur.label ? "" : "muted-2"}>{cur ? cur.label || t("（无）", "(none)") : (placeholder ?? t("请选择", "Select..."))}</span>
         <ChevronDown size={15} className={`cselect-chev ${open ? "open" : ""}`} />
       </button>
       {open && (
@@ -57,7 +59,7 @@ export function Select({
                 setOpen(false);
               }}
             >
-              <span>{o.label || "（无）"}</span>
+              <span>{o.label || t("（无）", "(none)")}</span>
               {o.value === value && <Check size={14} />}
             </button>
           ))}
@@ -156,6 +158,7 @@ export function Modal({
   footer?: ReactNode;
   width?: number;
 }) {
+  const { t } = useI18n();
   // 收回动画：关闭时先播放退出动效，待动画结束(150ms)再真正卸载，避免「秒消失」。
   const [closing, setClosing] = useState(false);
   const close = useCallback(() => {
@@ -187,7 +190,7 @@ export function Modal({
             <span className="card-title">{title}</span>
             {sub && <span className="card-sub">{sub}</span>}
           </div>
-          <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={close} aria-label="关闭">
+          <button className="icon-btn" style={{ width: 32, height: 32 }} onClick={close} aria-label={t("关闭", "Close")}>
             <X size={16} />
           </button>
         </div>
@@ -229,7 +232,7 @@ export function PromptDialog({
   hint,
   placeholder,
   defaultValue = "",
-  confirmText = "确认",
+  confirmText,
   mono,
   validate,
   onConfirm,
@@ -247,6 +250,7 @@ export function PromptDialog({
   onConfirm: (value: string) => void | Promise<void>;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   const [val, setVal] = useState(defaultValue);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -273,8 +277,8 @@ export function PromptDialog({
       onClose={() => !busy && onCancel()}
       footer={
         <>
-          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>取消</button>
-          <button className="btn btn-primary" onClick={submit} disabled={busy}>{confirmText}</button>
+          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>{t("取消", "Cancel")}</button>
+          <button className="btn btn-primary" onClick={submit} disabled={busy}>{confirmText ?? t("确认", "Confirm")}</button>
         </>
       }
     >
@@ -298,8 +302,8 @@ export function PromptDialog({
 export function ConfirmDialog({
   title,
   message,
-  confirmText = "确认",
-  cancelText = "取消",
+  confirmText,
+  cancelText,
   danger,
   busy,
   onConfirm,
@@ -314,6 +318,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useI18n();
   return (
     <Modal
       title={title}
@@ -329,9 +334,9 @@ export function ConfirmDialog({
       }
       footer={
         <>
-          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>{cancelText}</button>
+          <button className="btn btn-ghost" onClick={onCancel} disabled={busy}>{cancelText ?? t("取消", "Cancel")}</button>
           <button className={`btn ${danger ? "btn-danger" : "btn-primary"}`} onClick={onConfirm} disabled={busy}>
-            {confirmText}
+            {confirmText ?? t("确认", "Confirm")}
           </button>
         </>
       }

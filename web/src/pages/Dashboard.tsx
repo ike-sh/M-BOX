@@ -23,6 +23,7 @@ import { TrafficChart } from "../components/TrafficChart";
 import { api } from "../lib/api";
 import { speed, bytes, pct, cleanNodeName } from "../lib/format";
 import { system as mockSystem } from "../mock/data";
+import { useI18n } from "../lib/i18n";
 import type { Connection, SystemInfo, TrafficPoint, TrafficStats } from "../types";
 
 const outPalette = ["#0a84ff", "#bf5af2", "#40c8e0", "#ff9f0a", "#5e5ce6"];
@@ -33,9 +34,14 @@ function outboundColor(name: string, i: number): string {
 }
 
 const MODE_LABEL: Record<string, string> = { rule: "RULE", global: "GLOBAL", direct: "DIRECT" };
-const MODE_SUB: Record<string, string> = { rule: "规则匹配模式", global: "全局代理模式", direct: "全局直连模式" };
+const MODE_SUB: Record<string, [string, string]> = {
+  rule: ["规则匹配模式", "Rule mode"],
+  global: ["全局代理模式", "Global proxy"],
+  direct: ["全局直连模式", "All direct"],
+};
 
 export function Dashboard() {
+  const { t, lang } = useI18n();
   const [hist, setHist] = useState<TrafficPoint[]>([]);
   const [live, setLive] = useState({ up: 0, down: 0 });
   const [system, setSystem] = useState<SystemInfo>(mockSystem);
@@ -158,14 +164,14 @@ export function Dashboard() {
           icon={<BarChart3 size={20} />}
           color="linear-gradient(135deg,#0a84ff,#5e5ce6)"
           value={bytes(todayTotal)}
-          label="今日总流量"
+          label={t("今日总流量", "Today's Traffic")}
           sub={<>↑{bytes(today?.up ?? 0)}　↓{bytes(today?.down ?? 0)}</>}
         />
         <BigStat
           icon={<Network size={20} />}
           color="linear-gradient(135deg,#bf5af2,#ff375f)"
           value={String(conns.length)}
-          label="活跃连接"
+          label={t("活跃连接", "Active Conns")}
           bar={{ percent: Math.min(100, conns.length), color: "linear-gradient(90deg,#bf5af2,#ff375f)" }}
         />
         <BigStat
@@ -173,14 +179,14 @@ export function Dashboard() {
           color="linear-gradient(135deg,#30d158,#40c8e0)"
           value={String(Math.round(system.mem.used))}
           unit="MB"
-          label="内存占用"
+          label={t("内存占用", "Memory")}
           bar={{ percent: pct(system.mem.used, system.mem.total), color: "linear-gradient(90deg,#30d158,#40c8e0)" }}
         />
         <BigStat
           icon={<Layers size={20} />}
           color="linear-gradient(135deg,#30d158,#16a34a)"
           value={MODE_LABEL[mode] ?? mode.toUpperCase()}
-          label={MODE_SUB[mode] ?? "代理模式"}
+          label={(MODE_SUB[mode] ?? ["代理模式", "Proxy mode"])[lang === "en" ? 1 : 0]}
         />
       </div>
 
@@ -189,16 +195,16 @@ export function Dashboard() {
         <GlassCard className="span-2">
           <CardHead
             icon={<Zap size={18} color="var(--blue)" />}
-            title="实时流量"
-            sub="过去 40 秒 · 每秒采样"
+            title={t("实时流量", "Live Traffic")}
+            sub={t("过去 40 秒 · 每秒采样", "Last 40s · sampled per second")}
             right={
               <div className="row gap-4">
                 <span className="row" style={{ gap: 6, fontSize: 12.5 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: "#0a84ff" }} /> 下载
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: "#0a84ff" }} /> {t("下载", "Down")}
                   <b className="mono">{dl.val} {dl.unit}</b>
                 </span>
                 <span className="row" style={{ gap: 6, fontSize: 12.5 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: "#bf5af2" }} /> 上传
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: "#bf5af2" }} /> {t("上传", "Up")}
                   <b className="mono">{ul.val} {ul.unit}</b>
                 </span>
               </div>
@@ -208,7 +214,7 @@ export function Dashboard() {
         </GlassCard>
 
         <GlassCard>
-          <CardHead icon={<Server size={18} color="var(--blue)" />} title="系统信息" />
+          <CardHead icon={<Server size={18} color="var(--blue)" />} title={t("系统信息", "System Info")} />
           <div className="col" style={{ gap: 15 }}>
             <div className="row" style={{ gap: 12, alignItems: "center" }}>
               <div className="stat-ico" style={{ width: 38, height: 38, background: "linear-gradient(135deg,#5e5ce6,#bf5af2)", flexShrink: 0 }}>
@@ -220,30 +226,30 @@ export function Dashboard() {
               </div>
             </div>
             <SysRow icon={<Cpu size={16} />} color="#0a84ff" label="CPU" value={`${system.cpu}%`} percent={system.cpu} />
-            <SysRow icon={<MemoryStick size={16} />} color="#30d158" label="内存" value={`${system.mem.used} / ${system.mem.total} MB`} percent={pct(system.mem.used, system.mem.total)} />
-            <SysRow icon={<HardDrive size={16} />} color="#ff9f0a" label="磁盘" value={`${system.disk.used} / ${system.disk.total} GB`} percent={pct(system.disk.used, system.disk.total)} />
-            <SysKV icon={<Gauge size={16} />} color="linear-gradient(135deg,#bf5af2,#ff375f)" label="负载均值" value={system.loadavg.join("  ")} />
-            <SysKV icon={<Clock size={16} />} color="linear-gradient(135deg,#40c8e0,#0a84ff)" label="运行时间" value={system.uptime} />
+            <SysRow icon={<MemoryStick size={16} />} color="#30d158" label={t("内存", "Memory")} value={`${system.mem.used} / ${system.mem.total} MB`} percent={pct(system.mem.used, system.mem.total)} />
+            <SysRow icon={<HardDrive size={16} />} color="#ff9f0a" label={t("磁盘", "Disk")} value={`${system.disk.used} / ${system.disk.total} GB`} percent={pct(system.disk.used, system.disk.total)} />
+            <SysKV icon={<Gauge size={16} />} color="linear-gradient(135deg,#bf5af2,#ff375f)" label={t("负载均值", "Load Avg")} value={system.loadavg.join("  ")} />
+            <SysKV icon={<Clock size={16} />} color="linear-gradient(135deg,#40c8e0,#0a84ff)" label={t("运行时间", "Uptime")} value={system.uptime} />
           </div>
         </GlassCard>
 
         <GlassCard className="span-2" style={{ display: "flex", flexDirection: "column" }}>
-          <CardHead icon={<Wifi size={18} color="var(--blue)" />} title="网络出口" sub="本地直连 / 代理出口" />
+          <CardHead icon={<Wifi size={18} color="var(--blue)" />} title={t("网络出口", "Network Egress")} sub={t("本地直连 / 代理出口", "Local direct / proxy egress")} />
           <div className="col" style={{ gap: 10, flex: 1, justifyContent: "center" }}>
-            <IpRow icon={<Wifi size={16} />} color="#0a84ff" label="本地 IP" value={net.localIP || net.lanIP} loading={localLoading} onRefresh={loadLocal} />
-            <IpRow icon={<Globe size={16} />} color="#bf5af2" label="代理 IP" value={net.egressIP} loading={egressLoading} onRefresh={loadEgress} />
+            <IpRow icon={<Wifi size={16} />} color="#0a84ff" label={t("本地 IP", "Local IP")} value={net.localIP || net.lanIP} loading={localLoading} onRefresh={loadLocal} />
+            <IpRow icon={<Globe size={16} />} color="#bf5af2" label={t("代理 IP", "Proxy IP")} value={net.egressIP} loading={egressLoading} onRefresh={loadEgress} />
           </div>
         </GlassCard>
 
         <GlassCard>
-          <CardHead icon={<Activity size={18} color="var(--purple)" />} title="分流统计" sub="按当前活动连接的出口" />
+          <CardHead icon={<Activity size={18} color="var(--purple)" />} title={t("分流统计", "Traffic Split")} sub={t("按当前活动连接的出口", "By active connection outbound")} />
           {outboundDist.length === 0 ? (
-            <div className="empty"><BarChart3 size={26} /><p>暂无统计数据</p></div>
+            <div className="empty"><BarChart3 size={26} /><p>{t("暂无统计数据", "No data yet")}</p></div>
           ) : (
             <div className="col" style={{ gap: 16 }}>
               <div className="stack-bar">
                 {outboundDist.map((o, i) => (
-                  <span key={o.name} style={{ width: `${pct(o.count, totalOut)}%`, background: outboundColor(o.name, i) }} title={`${o.name}: ${o.count} 条`} />
+                  <span key={o.name} style={{ width: `${pct(o.count, totalOut)}%`, background: outboundColor(o.name, i) }} title={`${o.name}: ${o.count}`} />
                 ))}
               </div>
               <div className="col" style={{ gap: 14 }}>
@@ -256,7 +262,7 @@ export function Dashboard() {
                       </span>
                       <span className="row" style={{ gap: 8, flexShrink: 0 }}>
                         <span className="mono" style={{ fontSize: 12.5, fontWeight: 600 }}>{bytes(o.bytes)}</span>
-                        <span className="mono muted-2" style={{ fontSize: 11 }}>{o.count} 条 · {pct(o.count, totalOut)}%</span>
+                        <span className="mono muted-2" style={{ fontSize: 11 }}>{o.count} {t("条", "conns")} · {pct(o.count, totalOut)}%</span>
                       </span>
                     </div>
                     <div className="bar"><span style={{ width: `${pct(o.count, totalOut)}%`, background: outboundColor(o.name, i) }} /></div>
@@ -271,20 +277,20 @@ export function Dashboard() {
       {/* 第三行：流量分类 | DNS解析 */}
       <div className="grid cols-2">
         <GlassCard>
-          <CardHead icon={<Activity size={18} color="var(--green)" />} title="流量分类" sub="直连 / 代理（活动连接）" />
+          <CardHead icon={<Activity size={18} color="var(--green)" />} title={t("流量分类", "Traffic Type")} sub={t("直连 / 代理（活动连接）", "Direct / proxy (active conns)")} />
           <div className="grid cols-2" style={{ gap: 12 }}>
-            <SplitCard tone="#30d158" label="直连" percent={directPct} bytesVal={bytes(directBytes)} conns={directConns} />
-            <SplitCard tone="#0a84ff" label="代理" percent={proxyPct} bytesVal={bytes(proxyBytes)} conns={proxyConns} />
+            <SplitCard tone="#30d158" label={t("直连", "Direct")} percent={directPct} bytesVal={bytes(directBytes)} conns={directConns} />
+            <SplitCard tone="#0a84ff" label={t("代理", "Proxy")} percent={proxyPct} bytesVal={bytes(proxyBytes)} conns={proxyConns} />
           </div>
         </GlassCard>
 
         <GlassCard>
-          <CardHead icon={<Globe size={18} color="var(--purple)" />} title="DNS 解析" sub="按活动连接派生" />
+          <CardHead icon={<Globe size={18} color="var(--purple)" />} title={t("DNS 解析", "DNS Resolution")} sub={t("按活动连接派生", "Derived from active connections")} />
           <div className="grid cols-2" style={{ gap: 10 }}>
-            <DnsStat tone="#bf5af2" label="累计解析域名" value={dnsStats.resolvedTotal} />
-            <DnsStat tone="#0a84ff" label="活跃域名" value={dnsStats.domainActive} />
-            <DnsStat tone="#30d158" label="fake-ip 解析" value={dnsStats.fakeipActive} />
-            <DnsStat tone="#ff9f0a" label="直连 IP" value={dnsStats.directActive} />
+            <DnsStat tone="#bf5af2" label={t("累计解析域名", "Resolved Total")} value={dnsStats.resolvedTotal} />
+            <DnsStat tone="#0a84ff" label={t("活跃域名", "Active Domains")} value={dnsStats.domainActive} />
+            <DnsStat tone="#30d158" label={t("fake-ip 解析", "fake-ip")} value={dnsStats.fakeipActive} />
+            <DnsStat tone="#ff9f0a" label={t("直连 IP", "Direct IP")} value={dnsStats.directActive} />
           </div>
         </GlassCard>
       </div>
@@ -293,12 +299,12 @@ export function Dashboard() {
       <GlassCard>
         <CardHead
           icon={<BarChart3 size={18} color="var(--blue)" />}
-          title="流量排行"
-          sub="当前活动连接按累计下载排序"
-          right={<a className="card-sub" href="#/connections" style={{ color: "var(--blue)", textDecoration: "none" }}>查看连接 <ArrowRight size={12} style={{ verticalAlign: "-1px" }} /></a>}
+          title={t("流量排行", "Top Traffic")}
+          sub={t("当前活动连接按累计下载排序", "Active connections by total download")}
+          right={<a className="card-sub" href="#/connections" style={{ color: "var(--blue)", textDecoration: "none" }}>{t("查看连接", "View connections")} <ArrowRight size={12} style={{ verticalAlign: "-1px" }} /></a>}
         />
         {topConns.length === 0 ? (
-          <div className="empty"><Globe size={26} /><p>暂无流量数据</p></div>
+          <div className="empty"><Globe size={26} /><p>{t("暂无流量数据", "No traffic data")}</p></div>
         ) : (
           <table className="table">
             <tbody>
@@ -374,6 +380,7 @@ function SysKV({ icon, color, label, value }: { icon: ReactNode; color: string; 
 }
 
 function IpRow({ icon, color, label, value, loading, onRefresh }: { icon: ReactNode; color: string; label: string; value: string; loading: boolean; onRefresh: () => void }) {
+  const { t } = useI18n();
   const [show, setShow] = useState(false);
   const masked = value ? value.replace(/[0-9a-fA-F]/g, "•") : "";
   return (
@@ -386,10 +393,10 @@ function IpRow({ icon, color, label, value, loading, onRefresh }: { icon: ReactN
         </span>
       </span>
       <span className="row" style={{ gap: 4, flexShrink: 0 }}>
-        <button className="icon-btn" style={{ width: 28, height: 28 }} title={show ? "隐藏" : "显示"} onClick={() => setShow((s) => !s)}>
+        <button className="icon-btn" style={{ width: 28, height: 28 }} title={show ? t("隐藏", "Hide") : t("显示", "Show")} onClick={() => setShow((s) => !s)}>
           {show ? <EyeOff size={13} /> : <Eye size={13} />}
         </button>
-        <button className="icon-btn" style={{ width: 28, height: 28 }} title="刷新" onClick={onRefresh} disabled={loading}>
+        <button className="icon-btn" style={{ width: 28, height: 28 }} title={t("刷新", "Refresh")} onClick={onRefresh} disabled={loading}>
           <RefreshCw size={13} className={loading ? "spin" : ""} />
         </button>
       </span>
@@ -407,6 +414,7 @@ function DnsStat({ tone, label, value }: { tone: string; label: string; value: n
 }
 
 function SplitCard({ tone, label, percent, bytesVal, conns }: { tone: string; label: string; percent: number; bytesVal: string; conns: number }) {
+  const { t } = useI18n();
   return (
     <div className="col" style={{ gap: 8, padding: 14, borderRadius: "var(--r-md)", background: "var(--fill-2)", border: "1px solid var(--hairline)" }}>
       <div className="row between">
@@ -415,7 +423,7 @@ function SplitCard({ tone, label, percent, bytesVal, conns }: { tone: string; la
       </div>
       <span className="mono" style={{ fontSize: 18, fontWeight: 700 }}>{bytesVal}</span>
       <div className="bar"><span style={{ width: `${percent}%`, background: tone }} /></div>
-      <span className="muted-2" style={{ fontSize: 11 }}>{conns} 条连接</span>
+      <span className="muted-2" style={{ fontSize: 11 }}>{conns} {t("条连接", "conns")}</span>
     </div>
   );
 }

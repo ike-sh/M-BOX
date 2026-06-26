@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ScrollText, Search, Eraser, Copy, ChevronDown, ChevronUp, Info } from "lucide-react";
 import { GlassCard, CardHead, Pill } from "../components/ui";
 import { api } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 
 interface LogLine {
   time: string;
@@ -10,10 +11,10 @@ interface LogLine {
 }
 
 const LEVELS = [
-  { k: "debug", label: "调试" },
-  { k: "info", label: "信息" },
-  { k: "warning", label: "警告" },
-  { k: "error", label: "错误" },
+  { k: "debug", label: "调试", en: "Debug" },
+  { k: "info", label: "信息", en: "Info" },
+  { k: "warning", label: "警告", en: "Warn" },
+  { k: "error", label: "错误", en: "Error" },
 ];
 
 function normLevel(l: string): string {
@@ -25,6 +26,7 @@ function normLevel(l: string): string {
 }
 
 export function Logs() {
+  const { t, lang } = useI18n();
   const [mihomo, setMihomo] = useState<LogLine[]>([]);
   const [backend, setBackend] = useState<LogLine[]>([]);
   const [levels, setLevels] = useState<Set<string>>(new Set(["debug", "info", "warning", "error"]));
@@ -77,16 +79,16 @@ export function Logs() {
         <div className="row between wrap" style={{ gap: 12 }}>
           <div className="row" style={{ background: "var(--fill-2)", border: "1px solid var(--hairline)", borderRadius: "var(--r-sm)", padding: "0 12px", height: 34, flex: 1, minWidth: 200, maxWidth: 420 }}>
             <Search size={15} color="var(--t3)" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="筛选日志内容…" style={{ background: "transparent", border: "none", outline: "none", color: "var(--t1)", fontSize: 13, flex: 1, marginLeft: 8, fontFamily: "inherit" }} />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("筛选日志内容…", "Filter log content…")} style={{ background: "transparent", border: "none", outline: "none", color: "var(--t1)", fontSize: 13, flex: 1, marginLeft: 8, fontFamily: "inherit" }} />
           </div>
           <div className="row gap-2" style={{ alignItems: "center" }}>
             {LEVELS.map((lv) => (
               <button key={lv.k} className={`btn btn-sm ${levels.has(lv.k) ? "btn-primary" : "btn-ghost"}`} onClick={() => toggleLevel(lv.k)}>
-                {lv.label}
+                {lang === "en" ? lv.en : lv.label}
               </button>
             ))}
             <button className="btn btn-ghost btn-sm" style={{ color: "var(--red)" }} onClick={() => { setMihomo([]); setBackend([]); }}>
-              <Eraser size={13} /> 清空
+              <Eraser size={13} /> {t("清空", "Clear")}
             </button>
           </div>
         </div>
@@ -95,35 +97,35 @@ export function Logs() {
       <GlassCard>
         <CardHead
           icon={<Info size={18} color="var(--blue)" />}
-          title="Mihomo 日志"
-          sub="内核运行日志（实时）"
+          title={t("Mihomo 日志", "Mihomo Logs")}
+          sub={t("内核运行日志（实时）", "Kernel runtime logs (live)")}
           right={
             <div className="row gap-2" style={{ alignItems: "center" }}>
               <Pill tone="blue">{mFiltered.length}</Pill>
               <span className="row" style={{ gap: 6, fontSize: 12, color: "var(--green)" }}><span className="live-dot" /> Streaming</span>
-              <button className="btn btn-ghost btn-sm" onClick={() => copyArea(mFiltered, "m")} disabled={mFiltered.length === 0}><Copy size={13} /> {copied === "m" ? "已复制" : "复制"}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => copyArea(mFiltered, "m")} disabled={mFiltered.length === 0}><Copy size={13} /> {copied === "m" ? t("已复制", "Copied") : t("复制", "Copy")}</button>
               <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => setMOpen((v) => !v)}>{mOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</button>
             </div>
           }
         />
-        {mOpen && <LogView lines={mFiltered} empty="等待内核日志…（mihomo 运行后实时输出）" />}
+        {mOpen && <LogView lines={mFiltered} empty={t("等待内核日志…（mihomo 运行后实时输出）", "Waiting for kernel logs… (live once mihomo runs)")} />}
       </GlassCard>
 
       <GlassCard>
         <CardHead
           icon={<ScrollText size={18} color="var(--purple)" />}
-          title="后端日志"
-          sub="M-BOX daemon 自身日志（启动 / 进程治理 / 订阅更新 / 重载 / 错误）"
+          title={t("后端日志", "Backend Logs")}
+          sub={t("M-BOX daemon 自身日志（启动 / 进程治理 / 订阅更新 / 重载 / 错误）", "M-BOX daemon logs (startup / process / subscription / reload / errors)")}
           right={
             <div className="row gap-2" style={{ alignItems: "center" }}>
               <Pill tone="purple">{bFiltered.length}</Pill>
               <span className="row" style={{ gap: 6, fontSize: 12, color: "var(--green)" }}><span className="live-dot" /> Streaming</span>
-              <button className="btn btn-ghost btn-sm" onClick={() => copyArea(bFiltered, "b")} disabled={bFiltered.length === 0}><Copy size={13} /> {copied === "b" ? "已复制" : "复制"}</button>
+              <button className="btn btn-ghost btn-sm" onClick={() => copyArea(bFiltered, "b")} disabled={bFiltered.length === 0}><Copy size={13} /> {copied === "b" ? t("已复制", "Copied") : t("复制", "Copy")}</button>
               <button className="icon-btn" style={{ width: 28, height: 28 }} onClick={() => setBOpen((v) => !v)}>{bOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}</button>
             </div>
           }
         />
-        {bOpen && <LogView lines={bFiltered} empty="暂无后端日志" />}
+        {bOpen && <LogView lines={bFiltered} empty={t("暂无后端日志", "No backend logs")} />}
       </GlassCard>
     </div>
   );
