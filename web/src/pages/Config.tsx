@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Archive, Download, Upload, RotateCcw, Trash2, FileCode2, Clock, Save, Sparkles } from "lucide-react";
 import { GlassCard, CardHead, Pill, PromptDialog, ConfirmDialog } from "../components/ui";
 import { api } from "../lib/api";
+import { useI18n } from "../lib/i18n";
 
 interface Backup {
   id: string;
@@ -13,6 +14,7 @@ interface Backup {
 }
 
 export function Config() {
+  const { t } = useI18n();
   const [content, setContent] = useState("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -50,13 +52,13 @@ export function Config() {
     if (r.warning) {
       setNotice({ kind: "warn", text: r.warning });
     } else {
-      setNotice({ kind: "ok", text: "配置已保存并热重载成功" });
+      setNotice({ kind: "ok", text: t("配置已保存并热重载成功", "Config saved & hot-reloaded") });
       setTimeout(() => setNotice(null), 4000);
     }
   }
 
   async function backupNow(note: string) {
-    await api.createBackup(note || "手动备份");
+    await api.createBackup(note || t("手动备份", "Manual backup"));
     setBackupOpen(false);
     loadBackups();
   }
@@ -97,7 +99,7 @@ export function Config() {
       if (r.warning) {
         setNotice({ kind: "warn", text: r.warning });
       } else {
-        setNotice({ kind: "ok", text: `已应用推荐策略（纳入 ${r.providers} 个订阅）并热重载` });
+        setNotice({ kind: "ok", text: t(`已应用推荐策略（纳入 ${r.providers} 个订阅）并热重载`, `Recommended policy applied (${r.providers} subscription(s) included) & hot-reloaded`) });
         setTimeout(() => setNotice(null), 4000);
       }
     } finally {
@@ -153,15 +155,15 @@ export function Config() {
         <GlassCard className="span-2">
           <CardHead
             icon={<FileCode2 size={18} color="var(--blue)" />}
-            title="当前配置"
-            sub={dirty ? "已修改，未保存" : "/etc/mbox/config.yaml"}
+            title={t("当前配置", "Current Config")}
+            sub={dirty ? t("已修改，未保存", "Modified, unsaved") : "/etc/mbox/config.yaml"}
             right={
               <div className="row gap-2">
-                <button className="btn btn-ghost btn-sm" onClick={() => setTplOpen(true)} title="生成地区分组 + 分类分流 + 内置 GEOSITE 规则"><Sparkles size={14} /> 一键推荐策略</button>
-                <button className="btn btn-ghost btn-sm" onClick={() => fileRef.current?.click()}><Upload size={14} /> 导入</button>
-                <button className="btn btn-ghost btn-sm" onClick={exportConfig}><Download size={14} /> 导出</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setTplOpen(true)} title={t("生成地区分组 + 分类分流 + 内置 GEOSITE 规则", "Generate region groups + category routing + built-in GEOSITE rules")}><Sparkles size={14} /> {t("一键推荐策略", "Recommended policy")}</button>
+                <button className="btn btn-ghost btn-sm" onClick={() => fileRef.current?.click()}><Upload size={14} /> {t("导入", "Import")}</button>
+                <button className="btn btn-ghost btn-sm" onClick={exportConfig}><Download size={14} /> {t("导出", "Export")}</button>
                 <button className="btn btn-primary btn-sm" onClick={save} disabled={saving || !dirty}>
-                  <Save size={14} /> {saving ? "保存中…" : "保存并热重载"}
+                  <Save size={14} /> {saving ? t("保存中…", "Saving…") : t("保存并热重载", "Save & reload")}
                 </button>
               </div>
             }
@@ -191,27 +193,27 @@ export function Config() {
         </GlassCard>
 
         <GlassCard>
-          <CardHead icon={<Archive size={18} color="var(--green)" />} title="备份概览" />
+          <CardHead icon={<Archive size={18} color="var(--green)" />} title={t("备份概览", "Backup Overview")} />
           <div className="col">
-            <div className="kv"><span className="k">备份总数</span><span className="v">{backups.length}</span></div>
-            <div className="kv"><span className="k">最近备份</span><span className="v">{recent}</span></div>
-            <div className="kv"><span className="k">自动备份</span><span className="v"><Pill tone="green" dot>保存前自动</Pill></span></div>
-            <div className="kv"><span className="k">保留策略</span><span className="v">最近 20 份</span></div>
-            <button className="btn btn-ghost mt-4" style={{ width: "100%" }} onClick={() => setBackupOpen(true)}><Save size={15} /> 立即手动备份</button>
+            <div className="kv"><span className="k">{t("备份总数", "Total backups")}</span><span className="v">{backups.length}</span></div>
+            <div className="kv"><span className="k">{t("最近备份", "Latest backup")}</span><span className="v">{recent}</span></div>
+            <div className="kv"><span className="k">{t("自动备份", "Auto-backup")}</span><span className="v"><Pill tone="green" dot>{t("保存前自动", "Before each save")}</Pill></span></div>
+            <div className="kv"><span className="k">{t("保留策略", "Retention")}</span><span className="v">{t("最近 20 份", "Last 20")}</span></div>
+            <button className="btn btn-ghost mt-4" style={{ width: "100%" }} onClick={() => setBackupOpen(true)}><Save size={15} /> {t("立即手动备份", "Manual backup now")}</button>
           </div>
         </GlassCard>
       </div>
 
       <GlassCard>
-        <CardHead icon={<Clock size={18} color="var(--purple)" />} title="备份历史" sub="可一键恢复或回滚到任意版本" />
+        <CardHead icon={<Clock size={18} color="var(--purple)" />} title={t("备份历史", "Backup History")} sub={t("可一键恢复或回滚到任意版本", "Restore or roll back to any version with one click")} />
         <table className="table">
           <thead>
             <tr>
-              <th>备份</th>
-              <th>说明</th>
-              <th>时间</th>
-              <th>大小</th>
-              <th style={{ textAlign: "right" }}>操作</th>
+              <th>{t("备份", "Backup")}</th>
+              <th>{t("说明", "Note")}</th>
+              <th>{t("时间", "Time")}</th>
+              <th>{t("大小", "Size")}</th>
+              <th style={{ textAlign: "right" }}>{t("操作", "Actions")}</th>
             </tr>
           </thead>
           <tbody>
@@ -220,7 +222,7 @@ export function Config() {
                 <td>
                   <span className="row" style={{ gap: 8 }}>
                     <span style={{ fontWeight: 600 }}>{b.name}</span>
-                    {b.current && <Pill tone="blue">最新</Pill>}
+                    {b.current && <Pill tone="blue">{t("最新", "Latest")}</Pill>}
                   </span>
                 </td>
                 <td className="muted">{b.note}</td>
@@ -228,9 +230,9 @@ export function Config() {
                 <td className="mono muted-2">{b.size}</td>
                 <td style={{ textAlign: "right" }}>
                   <div className="row" style={{ gap: 6, justifyContent: "flex-end" }}>
-                    <button className="btn btn-ghost btn-sm" onClick={() => setRestoreTarget(b)}><RotateCcw size={13} /> 恢复</button>
-                    <a className="icon-btn" style={{ width: 30, height: 30 }} title="下载" href={api.backupDownloadUrl(b.id)}><Download size={14} /></a>
-                    <button className="icon-btn" style={{ width: 30, height: 30 }} title="删除" onClick={() => setDelTarget(b)}><Trash2 size={14} /></button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setRestoreTarget(b)}><RotateCcw size={13} /> {t("恢复", "Restore")}</button>
+                    <a className="icon-btn" style={{ width: 30, height: 30 }} title={t("下载", "Download")} href={api.backupDownloadUrl(b.id)}><Download size={14} /></a>
+                    <button className="icon-btn" style={{ width: 30, height: 30 }} title={t("删除", "Delete")} onClick={() => setDelTarget(b)}><Trash2 size={14} /></button>
                   </div>
                 </td>
               </tr>
@@ -238,21 +240,19 @@ export function Config() {
           </tbody>
         </table>
         {backups.length === 0 && (
-          <div className="empty"><Archive size={28} /><p>暂无备份，保存配置或点「立即手动备份」会自动生成</p></div>
+          <div className="empty"><Archive size={28} /><p>{t("暂无备份，保存配置或点「立即手动备份」会自动生成", "No backups yet. Saving the config or clicking \u201cManual backup now\u201d creates one.")}</p></div>
         )}
       </GlassCard>
 
       {tplOpen && (
         <ConfirmDialog
-          title="应用推荐策略模板"
+          title={t("应用推荐策略模板", "Apply Recommended Policy")}
           busy={tplBusy}
-          confirmText={tplBusy ? "生成中…" : "应用"}
+          confirmText={tplBusy ? t("生成中…", "Generating…") : t("应用", "Apply")}
           message={
             <>
-              将<b style={{ color: "var(--t1)" }}>重写</b> proxy-groups 与 rules：生成
-              地区分组(港/美/日/新/台/韩)、自动选择、分类分流(AI/YouTube/流媒体/Telegram/Google…) +
-              内置 GEOSITE 规则，并把当前已启用订阅自动纳入。其余配置(DNS/TUN/订阅)保持不变，
-              <b style={{ color: "var(--t1)" }}>生成前会自动备份</b>。确定继续？
+              {t("将", "This will ")}<b style={{ color: "var(--t1)" }}>{t("重写", "rewrite")}</b>{t(" proxy-groups 与 rules：生成地区分组(港/美/日/新/台/韩)、自动选择、分类分流(AI/YouTube/流媒体/Telegram/Google…) + 内置 GEOSITE 规则，并把当前已启用订阅自动纳入。其余配置(DNS/TUN/订阅)保持不变，", " proxy-groups and rules: region groups (HK/US/JP/SG/TW/KR), auto-select, category routing (AI/YouTube/streaming/Telegram/Google…) + built-in GEOSITE rules, including currently enabled subscriptions. Other config (DNS/TUN/subs) is untouched, ")}
+              <b style={{ color: "var(--t1)" }}>{t("生成前会自动备份", "auto-backed up beforehand")}</b>{t("。确定继续？", ". Continue?")}
             </>
           }
           onConfirm={applyTemplate}
@@ -262,12 +262,12 @@ export function Config() {
 
       {backupOpen && (
         <PromptDialog
-          title="立即手动备份"
-          sub="为当前配置生成一份可回滚的快照"
-          label="备份说明（可选）"
-          placeholder="手动备份"
-          defaultValue="手动备份"
-          confirmText="备份"
+          title={t("立即手动备份", "Manual Backup")}
+          sub={t("为当前配置生成一份可回滚的快照", "Create a rollback snapshot of the current config")}
+          label={t("备份说明（可选）", "Note (optional)")}
+          placeholder={t("手动备份", "Manual backup")}
+          defaultValue={t("手动备份", "Manual backup")}
+          confirmText={t("备份", "Backup")}
           onConfirm={backupNow}
           onCancel={() => setBackupOpen(false)}
         />
@@ -275,10 +275,10 @@ export function Config() {
 
       {restoreTarget && (
         <ConfirmDialog
-          title="恢复备份"
+          title={t("恢复备份", "Restore Backup")}
           busy={busy}
-          confirmText={busy ? "恢复中…" : "恢复"}
-          message={<>确定恢复到「<b style={{ color: "var(--t1)" }}>{restoreTarget.time}</b>」这份备份？恢复前会自动备份当前配置。</>}
+          confirmText={busy ? t("恢复中…", "Restoring…") : t("恢复", "Restore")}
+          message={<>{t("确定恢复到「", "Restore the backup from \u201c")}<b style={{ color: "var(--t1)" }}>{restoreTarget.time}</b>{t("」这份备份？恢复前会自动备份当前配置。", "\u201d? The current config is auto-backed up first.")}</>}
           onConfirm={restore}
           onCancel={() => !busy && setRestoreTarget(null)}
         />
@@ -286,11 +286,11 @@ export function Config() {
 
       {delTarget && (
         <ConfirmDialog
-          title="删除备份"
+          title={t("删除备份", "Delete Backup")}
           danger
           busy={busy}
-          confirmText={busy ? "删除中…" : "删除"}
-          message={<>确定删除备份「<b style={{ color: "var(--t1)" }}>{delTarget.name}</b>」（{delTarget.time}）？此操作不可撤销。</>}
+          confirmText={busy ? t("删除中…", "Deleting…") : t("删除", "Delete")}
+          message={<>{t("确定删除备份「", "Delete backup \u201c")}<b style={{ color: "var(--t1)" }}>{delTarget.name}</b>{t("」（", "\u201d (")}{delTarget.time}{t("）？此操作不可撤销。", ")? This cannot be undone.")}</>}
           onConfirm={del}
           onCancel={() => !busy && setDelTarget(null)}
         />
