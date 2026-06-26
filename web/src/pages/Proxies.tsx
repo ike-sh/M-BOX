@@ -4,13 +4,15 @@ import { GlassCard, Pill, Segmented, Modal } from "../components/ui";
 import { ManualProxyForm } from "../components/ManualProxyForm";
 import { api } from "../lib/api";
 import { latencyClass, cleanNodeName } from "../lib/format";
+import { useI18n } from "../lib/i18n";
 import type { ProxyGroup, ProxyNode } from "../types";
 
 function Latency({ ms }: { ms: number }) {
+  const { t } = useI18n();
   return (
     <span className={`latency ${latencyClass(ms)}`}>
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor" }} />
-      {ms < 0 ? "超时" : `${ms} ms`}
+      {ms < 0 ? t("超时", "Timeout") : `${ms} ms`}
     </span>
   );
 }
@@ -26,6 +28,7 @@ const groupTone = (t: string) =>
   t === "select" ? "blue" : t === "url-test" ? "green" : t === "fallback" ? "purple" : "orange";
 
 export function Proxies() {
+  const { t } = useI18n();
   const [nodes, setNodes] = useState<ProxyNode[]>([]);
   const [rawGroups, setRawGroups] = useState<ProxyGroup[]>([]);
   const [selections, setSelections] = useState<Record<string, string>>({});
@@ -138,7 +141,7 @@ export function Proxies() {
       }
       const names = [...memberSet];
       if (names.length === 0) {
-        setOptMsg("没有可优化的手动策略组（select 组）");
+        setOptMsg(t("没有可优化的手动策略组（select 组）", "No manual (select) groups to optimize"));
         setTimeout(() => setOptMsg(null), 4000);
         return;
       }
@@ -160,10 +163,10 @@ export function Proxies() {
         }
       }
       loadProxies();
-      setOptMsg(`已评估 ${names.length} 个节点，为 ${changed} 个策略组切换到最优节点`);
+      setOptMsg(t(`已评估 ${names.length} 个节点，为 ${changed} 个策略组切换到最优节点`, `Evaluated ${names.length} nodes, switched ${changed} group(s) to the best node`));
       setTimeout(() => setOptMsg(null), 5000);
     } catch (e) {
-      setOptMsg(e instanceof Error ? e.message : "选优失败");
+      setOptMsg(e instanceof Error ? e.message : t("选优失败", "Optimization failed"));
       setTimeout(() => setOptMsg(null), 5000);
     } finally {
       setOptimizing(false);
@@ -211,31 +214,31 @@ export function Proxies() {
         <div className="glass" style={{ padding: "10px 16px", borderRadius: "var(--r-md)", fontSize: 13, border: "1px solid var(--blue)", color: "var(--blue)" }}>{optMsg}</div>
       )}
       <div className="grid cols-4">
-        <Mini icon={<Layers size={18} />} c="#0a84ff" label="策略组" value={String(rawGroups.length)} />
-        <Mini icon={<Globe size={18} />} c="#30d158" label="节点总数" value={String(nodes.length)} />
-        <Mini icon={<Gauge size={18} />} c="#ff9f0a" label="平均延迟" value={`${avg} ms`} />
+        <Mini icon={<Layers size={18} />} c="#0a84ff" label={t("策略组", "Groups")} value={String(rawGroups.length)} />
+        <Mini icon={<Globe size={18} />} c="#30d158" label={t("节点总数", "Nodes")} value={String(nodes.length)} />
+        <Mini icon={<Gauge size={18} />} c="#ff9f0a" label={t("平均延迟", "Avg Latency")} value={`${avg} ms`} />
         <div className="glass stat" style={{ justifyContent: "center", gap: 8 }}>
           <button className="btn btn-primary" onClick={() => setImportOpen((v) => !v)}>
-            <Plus size={16} /> 添加节点
+            <Plus size={16} /> {t("添加节点", "Add Node")}
           </button>
           <button className="btn btn-ghost" onClick={runTest} disabled={testing || optimizing}>
             {testing ? <RotateCw size={16} className="spin" /> : <Zap size={16} />}
-            {testing ? "测速中…" : "全部测速"}
+            {testing ? t("测速中…", "Testing…") : t("全部测速", "Test All")}
           </button>
-          <button className="btn btn-ghost" onClick={runOptimize} disabled={optimizing || testing} title="多次测速评分后，为每个手动策略组自动选出最优节点">
+          <button className="btn btn-ghost" onClick={runOptimize} disabled={optimizing || testing} title={t("多次测速评分后，为每个手动策略组自动选出最优节点", "Score nodes over multiple tests and pick the best for each manual group")}>
             {optimizing ? <RotateCw size={16} className="spin" /> : <Sparkles size={16} />}
-            {optimizing ? "选优中…" : "自动选优"}
+            {optimizing ? t("选优中…", "Optimizing…") : t("自动选优", "Auto-best")}
           </button>
-          <button className="btn btn-ghost" onClick={() => setSortByDelay((s) => !s)} title="按延迟从低到高排序节点">
-            <ArrowDownNarrowWide size={16} /> {sortByDelay ? "默认排序" : "按延迟排序"}
+          <button className="btn btn-ghost" onClick={() => setSortByDelay((s) => !s)} title={t("按延迟从低到高排序节点", "Sort nodes by latency ascending")}>
+            <ArrowDownNarrowWide size={16} /> {sortByDelay ? t("默认排序", "Default order") : t("按延迟排序", "Sort by latency")}
           </button>
         </div>
       </div>
 
       {importOpen && (
         <Modal
-          title="添加节点"
-          sub={addMode === "link" ? "粘贴分享链接批量导入" : "手动填写参数添加单个节点"}
+          title={t("添加节点", "Add Node")}
+          sub={addMode === "link" ? t("粘贴分享链接批量导入", "Bulk import by pasting share links") : t("手动填写参数添加单个节点", "Add a single node by filling parameters")}
           width={640}
           onClose={() => { setImportOpen(false); setImportResult(null); }}
           icon={<span className="stat-ico" style={{ width: 34, height: 34, background: "var(--accent-grad)" }}><Plus size={16} /></span>}
@@ -245,8 +248,8 @@ export function Proxies() {
               value={addMode}
               onChange={(m) => { setAddMode(m); setImportResult(null); }}
               options={[
-                { value: "link", label: "链接导入" },
-                { value: "manual", label: "手动填写" },
+                { value: "link", label: t("链接导入", "Import links") },
+                { value: "manual", label: t("手动填写", "Manual") },
               ]}
             />
           </div>
@@ -256,7 +259,7 @@ export function Proxies() {
           ) : (
           <>
           <span className="muted-2" style={{ fontSize: 12, display: "block", marginBottom: 10 }}>
-            每行一条，支持 ss / ssr / vmess / vless / trojan / hysteria2 / hysteria / tuic / mieru / socks5 / http
+            {t("每行一条，支持 ss / ssr / vmess / vless / trojan / hysteria2 / hysteria / tuic / mieru / socks5 / http", "One per line: ss / ssr / vmess / vless / trojan / hysteria2 / hysteria / tuic / mieru / socks5 / http")}
           </span>
           <textarea
             className="input"
@@ -267,11 +270,11 @@ export function Proxies() {
           />
           <div className="row between" style={{ marginTop: 12 }}>
             <span className="muted-2" style={{ fontSize: 12 }}>
-              {importText.trim() ? `${importText.trim().split(/\r?\n/).filter((l) => l.trim()).length} 行待解析` : "也可直接粘贴 base64 订阅内容"}
+              {importText.trim() ? `${importText.trim().split(/\r?\n/).filter((l) => l.trim()).length} ${t("行待解析", "line(s) to parse")}` : t("也可直接粘贴 base64 订阅内容", "You can also paste base64 subscription content")}
             </span>
             <button className="btn btn-primary" onClick={runImport} disabled={importing || !importText.trim()} style={{ gap: 8 }}>
               {importing ? <Loader2 size={15} className="spin" /> : <Plus size={15} />}
-              {importing ? "导入中…" : "解析并导入"}
+              {importing ? t("导入中…", "Importing…") : t("解析并导入", "Parse & import")}
             </button>
           </div>
 
@@ -282,8 +285,8 @@ export function Proxies() {
                   ? <CheckCircle2 size={16} color="var(--green)" />
                   : <AlertCircle size={16} color="var(--orange)" />}
                 <span style={{ fontSize: 13, color: "var(--t1)" }}>
-                  成功导入 <b>{importResult.count}</b> 个节点
-                  {importResult.errors.length > 0 && <>，<span style={{ color: "var(--orange)" }}>{importResult.errors.length} 条失败</span></>}
+                  {t("成功导入", "Imported")} <b>{importResult.count}</b> {t("个节点", "node(s)")}
+                  {importResult.errors.length > 0 && <>，<span style={{ color: "var(--orange)" }}>{importResult.errors.length} {t("条失败", "failed")}</span></>}
                 </span>
               </div>
               {importResult.added.length > 0 && (
@@ -304,7 +307,7 @@ export function Proxies() {
       )}
 
       {rawGroups.length === 0 && (
-        <GlassCard><span className="muted-2" style={{ fontSize: 13 }}>暂无策略组。请到「订阅管理」添加订阅，或在上方「添加节点」。</span></GlassCard>
+        <GlassCard><span className="muted-2" style={{ fontSize: 13 }}>{t("暂无策略组。请到「订阅管理」添加订阅，或在上方「添加节点」。", "No proxy groups yet. Add a subscription under \u201cSubscriptions\u201d, or use \u201cAdd Node\u201d above.")}</span></GlassCard>
       )}
 
       {/* 策略组：方块网格对齐；点方块弹窗选节点，点空白处关闭 */}
@@ -337,7 +340,7 @@ export function Proxies() {
                 </span>
                 {nowNode && nowNode.delay > 0 && <Latency ms={nowNode.delay} />}
               </div>
-              <span className="muted-2" style={{ fontSize: 11 }}>{count} 个出口 · {selectable ? "点击选择" : "自动选择"}</span>
+              <span className="muted-2" style={{ fontSize: 11 }}>{count} {t("个出口", "outbounds")} · {selectable ? t("点击选择", "tap to select") : t("自动选择", "auto")}</span>
             </div>
           );
         })}
@@ -347,7 +350,7 @@ export function Proxies() {
       {picker && (
         <Modal
           title={picker.name}
-          sub={pickerSelectable ? `${pickerMembers.length} 个出口 · 点击节点切换，点空白处关闭` : `${pickerMembers.length} 个出口 · url-test 由内核自动测速，仅供查看`}
+          sub={pickerSelectable ? `${pickerMembers.length} ${t("个出口 · 点击节点切换，点空白处关闭", "outbounds · tap a node to switch, click outside to close")}` : `${pickerMembers.length} ${t("个出口 · url-test 由内核自动测速，仅供查看", "outbounds · url-test auto-selected by the kernel, view-only")}`}
           width={780}
           onClose={() => setPickerName(null)}
           icon={<span className="stat-ico" style={{ width: 34, height: 34, background: "var(--accent-grad)" }}><Globe size={16} /></span>}
@@ -361,7 +364,7 @@ export function Proxies() {
                   key={p}
                   className={`node-card ${selected ? "selected" : ""} ${pickerSelectable ? "" : "locked"}`}
                   onClick={pickerSelectable ? () => pick(picker.name, p) : undefined}
-                  title={pickerSelectable ? `切换到 ${p}` : `${picker.type} 组由内核自动选择，不支持手动切换`}
+                  title={pickerSelectable ? `${t("切换到", "Switch to")} ${p}` : `${picker.type} ${t("组由内核自动选择，不支持手动切换", "group is auto-selected by the kernel; manual switch unsupported")}`}
                   style={pickerSelectable ? undefined : { cursor: "default" }}
                 >
                   <div className="row between">
@@ -395,7 +398,7 @@ export function Proxies() {
                             <button
                               className="icon-btn"
                               style={{ width: 22, height: 22 }}
-                              title="测速该节点"
+                              title={t("测速该节点", "Test this node")}
                               onClick={(e) => { e.stopPropagation(); testOne(p); }}
                             >
                               <Zap size={12} />
@@ -404,7 +407,7 @@ export function Proxies() {
                         )}
                       </>
                     ) : (
-                      <span className="muted-2" style={{ fontSize: 11.5 }}>{p === "DIRECT" ? "直接连接" : "策略组"}</span>
+                      <span className="muted-2" style={{ fontSize: 11.5 }}>{p === "DIRECT" ? t("直接连接", "Direct") : t("策略组", "Group")}</span>
                     )}
                   </div>
                 </div>

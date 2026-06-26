@@ -2,6 +2,23 @@ import { useMemo, useState } from "react";
 import { Plus, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Switch, Select } from "./ui";
 import { api } from "../lib/api";
+import { useI18n } from "../lib/i18n";
+
+// 字段标签 / 占位符的英文映射（避免逐个改 Field 定义）。
+const LABEL_EN: Record<string, string> = {
+  "节点名称": "Name", "服务器地址": "Server", "端口": "Port",
+  "加密方式": "Cipher", "密码": "Password", "加密": "Cipher",
+  "安全层": "Security", "指纹": "Fingerprint", "跳过证书校验": "Skip cert verify",
+  "上行带宽": "Up bandwidth", "下行带宽": "Down bandwidth", "拥塞控制": "Congestion",
+  "协议": "Protocol", "混淆": "Obfs", "协议参数": "Protocol param",
+  "混淆参数": "Obfs param", "用户名": "Username", "传输": "Transport", "obfs 密码": "obfs password",
+};
+const PH_EN: Record<string, string> = {
+  "如 香港-IEPL-01": "e.g. HK-IEPL-01", "域名或 IP": "domain or IP", "Host 头": "Host header",
+  "如 salamander": "e.g. salamander", "如 50 Mbps": "e.g. 50 Mbps", "如 200 Mbps": "e.g. 200 Mbps",
+  "如 aes-256-cfb": "e.g. aes-256-cfb", "如 auth_aes128_md5": "e.g. auth_aes128_md5",
+  "如 tls1.2_ticket_auth": "e.g. tls1.2_ticket_auth", "逗号分隔，如 h3": "comma-separated, e.g. h3",
+};
 
 type Field =
   | { k: string; label: string; t: "text"; ph?: string }
@@ -243,6 +260,7 @@ function shouldShow(type: string, key: string, v: Record<string, any>): boolean 
 }
 
 export function ManualProxyForm({ onAdded }: { onAdded?: (name: string) => void }) {
+  const { t, lang } = useI18n();
   const [type, setType] = useState("vless");
   const [v, setV] = useState<Record<string, any>>(() => defaults("vless"));
   const [busy, setBusy] = useState(false);
@@ -262,7 +280,7 @@ export function ManualProxyForm({ onAdded }: { onAdded?: (name: string) => void 
   async function submit() {
     if (busy) return;
     if (!String(v.server || "").trim() || !Number(v.port)) {
-      setResult({ ok: false, msg: "服务器地址和端口必填" });
+      setResult({ ok: false, msg: t("服务器地址和端口必填", "Server and port are required") });
       return;
     }
     setBusy(true);
@@ -272,11 +290,11 @@ export function ManualProxyForm({ onAdded }: { onAdded?: (name: string) => void 
       const r = await api.addManualProxy(proxy);
       if (r.count > 0) {
         const nm = r.added[0] || proxy.name;
-        setResult({ ok: true, msg: `已添加节点「${nm}」` });
+        setResult({ ok: true, msg: `${t("已添加节点", "Added node")}「${nm}」` });
         onAdded?.(String(nm));
         setV(defaults(type)); // 重置表单便于继续添加
       } else {
-        setResult({ ok: false, msg: "添加失败" });
+        setResult({ ok: false, msg: t("添加失败", "Add failed") });
       }
     } finally {
       setBusy(false);
@@ -286,7 +304,7 @@ export function ManualProxyForm({ onAdded }: { onAdded?: (name: string) => void 
   return (
     <div className="col gap-4">
       <div className="col gap-1" style={{ maxWidth: 280 }}>
-        <span className="muted-2" style={{ fontSize: 11.5 }}>协议类型</span>
+        <span className="muted-2" style={{ fontSize: 11.5 }}>{t("协议类型", "Protocol")}</span>
         <Select value={type} onChange={changeType} options={PROTOCOLS.map((p) => ({ value: p, label: p }))} />
       </div>
 
@@ -295,7 +313,7 @@ export function ManualProxyForm({ onAdded }: { onAdded?: (name: string) => void 
           if (!shouldShow(type, f.k, v)) return null;
           return (
             <div key={f.k} className="col gap-1">
-              <span className="muted-2" style={{ fontSize: 11.5 }}>{f.label}</span>
+              <span className="muted-2" style={{ fontSize: 11.5 }}>{lang === "en" ? (LABEL_EN[f.label] ?? f.label) : f.label}</span>
               {f.t === "bool" ? (
                 <div style={{ height: 34, display: "flex", alignItems: "center" }}>
                   <Switch on={!!v[f.k]} onChange={(val) => set(f.k, val)} />
@@ -304,13 +322,13 @@ export function ManualProxyForm({ onAdded }: { onAdded?: (name: string) => void 
                 <Select
                   value={v[f.k] ?? ""}
                   onChange={(val) => set(f.k, val)}
-                  options={f.opts.map((o) => ({ value: o, label: o === "" ? "（无）" : o }))}
+                  options={f.opts.map((o) => ({ value: o, label: o === "" ? t("（无）", "(none)") : o }))}
                 />
               ) : (
                 <input
                   className={f.t === "num" ? "input" : "input mono"}
                   type={f.t === "num" ? "number" : "text"}
-                  placeholder={"ph" in f ? f.ph : ""}
+                  placeholder={"ph" in f && f.ph ? (lang === "en" ? (PH_EN[f.ph] ?? f.ph) : f.ph) : ""}
                   value={v[f.k] ?? ""}
                   onChange={(e) => set(f.k, f.t === "num" ? e.target.value : e.target.value)}
                 />
@@ -327,11 +345,11 @@ export function ManualProxyForm({ onAdded }: { onAdded?: (name: string) => void 
             {result.msg}
           </span>
         ) : (
-          <span className="muted-2" style={{ fontSize: 12 }}>填写后将写入 config.yaml 并加入策略组</span>
+          <span className="muted-2" style={{ fontSize: 12 }}>{t("填写后将写入 config.yaml 并加入策略组", "Saved into config.yaml and added to proxy groups")}</span>
         )}
         <button className="btn btn-primary" onClick={submit} disabled={busy} style={{ gap: 8 }}>
           {busy ? <Loader2 size={15} className="spin" /> : <Plus size={15} />}
-          {busy ? "添加中…" : "添加节点"}
+          {busy ? t("添加中…", "Adding…") : t("添加节点", "Add node")}
         </button>
       </div>
     </div>
